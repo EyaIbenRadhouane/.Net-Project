@@ -13,6 +13,7 @@ public class Recipe
     [Required(ErrorMessage = "Le nombre de personnes est obligatoire.")]
     [Range(1, 100, ErrorMessage = "Le nombre de personnes doit être entre 1 et 100.")]
     public int NumberOfPersons { get; set; } = 1;
+    public double CaloriesRecipe{ get; set; }
 
     [Required(ErrorMessage = "La catégorie est obligatoire.")]
     public string Category { get; set; } = string.Empty;
