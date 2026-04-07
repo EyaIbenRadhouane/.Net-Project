@@ -1,0 +1,80 @@
+﻿@page "/ingredients"
+@rendermode InteractiveServer
+@using Recette.Services
+@using IngredientModel = Recette.Models.Ingredient
+@inject IIngredientService IngredientService
+@inject NavigationManager NavManager
+
+<PageTitle>Liste des Ingrédients</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>🧂 Liste des Ingrédients</h3>
+    <button class="btn btn-success" @onclick="GoToAdd">
+        <span class="bi bi-plus-circle"></span> Ajouter un ingrédient
+    </button>
+</div>
+
+@if (_isLoading)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm"></span>
+        Chargement des données...
+    </div>
+}
+else if (_ingredients == null || !_ingredients.Any())
+{
+    <div class="alert alert-warning">Aucun ingrédient trouvé.</div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Nom</th>
+                <th>Calories / Unité</th>
+                <th>Unité</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ingredient in _ingredients)
+            {
+                <tr>
+                    <td>@ingredient.Name</td>
+                    <td>@ingredient.CaloriesPerUnit kcal</td>
+                    <td>@ingredient.Unit</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-1"
+                                @onclick="() => GoToEdit(ingredient.Id)">
+                            ✏️ Modifier
+                        </button>
+                        <button class="btn btn-sm btn-danger"
+                                @onclick="() => Delete(ingredient.Id)">
+                            🗑️ Supprimer
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<IngredientModel>? _ingredients;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ingredients = await IngredientService.GetIngredientsAsync();
+        _isLoading = false;
+    }
+
+    private void GoToAdd() => NavManager.NavigateTo("/ingredients/ajouter");
+    private void GoToEdit(int id) => NavManager.NavigateTo($"/ingredients/modifier/{id}");
+
+    private async Task Delete(int id)
+    {
+        await IngredientService.DeleteIngredientAsync(id);
+        _ingredients = await IngredientService.GetIngredientsAsync();
+    }
+}

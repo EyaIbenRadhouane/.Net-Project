@@ -1,0 +1,86 @@
+@page "/ingredients/modifier/{Id:int}"
+@rendermode InteractiveServer
+@using Recette.Services
+@using Recette.Models
+@inject IIngredientService IngredientService
+@inject NavigationManager NavManager
+
+<PageTitle>Modifier l'Ingrédient</PageTitle>
+
+<h3>✏️ Modifier l'Ingrédient</h3>
+
+@if (_isLoading)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm"></span> Chargement...
+    </div>
+}
+else if (_ingredient == null)
+{
+    <div class="alert alert-danger">Ingrédient introuvable.</div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <EditForm Model="_ingredient" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="alert alert-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label">Nom</label>
+                    <InputText class="form-control" @bind-Value="_ingredient.Name" />
+                    <ValidationMessage For="() => _ingredient.Name" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Calories par unité</label>
+                    <InputNumber class="form-control" @bind-Value="_ingredient.CaloriesPerUnit" />
+                    <ValidationMessage For="() => _ingredient.CaloriesPerUnit" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Unité de mesure</label>
+                    <InputSelect class="form-select" @bind-Value="_ingredient.Unit">
+                        <option value="">-- Choisir --</option>
+                        <option>g</option>
+                        <option>kg</option>
+                        <option>ml</option>
+                        <option>cl</option>
+                        <option>L</option>
+                        <option>unité</option>
+                        <option>c.à.s</option>
+                        <option>c.à.c</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => _ingredient.Unit" />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning">💾 Mettre à jour</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Ingredient? _ingredient;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ingredient = await IngredientService.GetIngredientByIdAsync(Id);
+        _isLoading = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        await IngredientService.UpdateIngredientAsync(_ingredient!);
+        NavManager.NavigateTo("/ingredients");
+    }
+
+    private void Cancel() => NavManager.NavigateTo("/ingredients");
+}

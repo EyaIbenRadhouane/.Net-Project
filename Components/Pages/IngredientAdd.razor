@@ -1,0 +1,64 @@
+@page "/ingredients/ajouter"
+@rendermode InteractiveServer
+@using Recette.Services
+@using Recette.Models
+@inject IIngredientService IngredientService
+@inject NavigationManager NavManager
+
+<PageTitle>Ajouter un Ingrédient</PageTitle>
+
+<h3>➕ Ajouter un Ingrédient</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="_ingredient" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="alert alert-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Nom</label>
+                <InputText class="form-control" @bind-Value="_ingredient.Name" placeholder="Ex: Farine" />
+                <ValidationMessage For="() => _ingredient.Name" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Calories par unité</label>
+                <InputNumber class="form-control" @bind-Value="_ingredient.CaloriesPerUnit" />
+                <ValidationMessage For="() => _ingredient.CaloriesPerUnit" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Unité de mesure</label>
+                <InputSelect class="form-select" @bind-Value="_ingredient.Unit">
+                    <option value="">-- Choisir --</option>
+                    <option>g</option>
+                    <option>kg</option>
+                    <option>ml</option>
+                    <option>cl</option>
+                    <option>L</option>
+                    <option>unité</option>
+                    <option>c.à.s</option>
+                    <option>c.à.c</option>
+                </InputSelect>
+                <ValidationMessage For="() => _ingredient.Unit" />
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">💾 Enregistrer</button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Ingredient _ingredient = new();
+
+    private async Task HandleSubmit()
+    {
+        await IngredientService.AddIngredientAsync(_ingredient);
+        NavManager.NavigateTo("/ingredients");
+    }
+
+    private void Cancel() => NavManager.NavigateTo("/ingredients");
+}
