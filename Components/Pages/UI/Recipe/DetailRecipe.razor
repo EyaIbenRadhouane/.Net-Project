@@ -1,0 +1,127 @@
+@page "/recettes/detail/{Id:int}"
+@rendermode InteractiveServer
+@using Recette.Services
+@using Recette.Models
+@inject IRecipeService RecipeService
+@inject NavigationManager NavManager
+
+<PageTitle>Détail de la recette</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm"></span> Chargement...
+    </div>
+}
+else if (_recipe == null)
+{
+    <div class="alert alert-danger">Recette introuvable.</div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>🍽️ @_recipe.Name</h3>
+        <div class="d-flex gap-2">
+            <button class="btn btn-warning" @onclick="GoToEdit">
+                ✏️ Modifier
+            </button>
+            <button class="btn btn-secondary" @onclick="GoToList">
+                ← Retour
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <p><strong>Catégorie :</strong> @_recipe.Category</p>
+                    <p><strong>Cuisine :</strong> @_recipe.CuisineType</p>
+                    <p><strong>Personnes :</strong> @_recipe.NumberOfPersons</p>
+                    <p><strong>Calories recette :</strong> @_recipe.CaloriesRecipe kcal</p>
+                    <p><strong>Instructions :</strong> @_recipe.Instructions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5>📊 Valeurs nutritionnelles</h5>
+                    <p class="fs-4 text-success fw-bold">
+                        @_recipe.TotalCalories.ToString("F1") kcal
+                        <small class="text-muted fs-6">total (calculé)</small>
+                    </p>
+                    <p class="fs-5 text-primary">
+                        @_recipe.CaloriesPerPerson.ToString("F1") kcal
+                        <small class="text-muted fs-6">/ personne</small>
+                    </p>
+                    <p class="fs-5 text-warning">
+                        @_recipe.CaloriesRecipe.ToString("F1") kcal
+                        <small class="text-muted fs-6">saisi manuellement</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5>🧂 Ingrédients utilisés</h5>
+
+    @if (_recipe.RecipeIngredients != null && _recipe.RecipeIngredients.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Ingrédient</th>
+                    <th>Quantité</th>
+                    <th>Unité</th>
+                    <th>Calories / Unité</th>   
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ri in _recipe.RecipeIngredients)
+                {
+                    <tr>
+                        <td>@ri.Ingredient?.Name</td>
+                        <td>@ri.Quantity g</td>
+                        <td>@ri.Ingredient?.Unit </td>
+                        <td>@ri.Ingredient?.CaloriesPerUnit  kcal</td>
+                        
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-secondary">
+                <tr>
+                    <td colspan="2"><strong>Total</strong></td>
+                    <td><strong>@_recipe.TotalCalories.ToString("F1") kcal</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    }
+    else
+    {
+        <div class="alert alert-warning">Aucun ingrédient associé à cette recette.</div>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Recipe? _recipe;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _recipe = await RecipeService.GetRecipeByIdAsync(Id);
+        _isLoading = false;
+    }
+
+    private void GoToEdit()
+    {
+        NavManager.NavigateTo($"/recettes/modifier/{_recipe!.Id}");
+    }
+
+    private void GoToList()
+    {
+        NavManager.NavigateTo("/recettes");
+    }
+}

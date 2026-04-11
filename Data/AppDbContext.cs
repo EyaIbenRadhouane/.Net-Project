@@ -8,14 +8,15 @@ public class AppDbContext : DbContext
     {
     }
 
-    // Chaque DbSet = une Table SQL
     public DbSet<Ingredient> Ingredients { get; set; }
     public DbSet<Recipe> Recipes { get; set; }
     public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configuration de la relation many-to-many via RecipeIngredient
+        base.OnModelCreating(modelBuilder);
+
+        // Relation many-to-many via RecipeIngredient
         modelBuilder.Entity<RecipeIngredient>()
             .HasOne(ri => ri.Recipe)
             .WithMany(r => r.RecipeIngredients)
@@ -25,5 +26,11 @@ public class AppDbContext : DbContext
             .HasOne(ri => ri.Ingredient)
             .WithMany(i => i.RecipeIngredients)
             .HasForeignKey(ri => ri.IngredientId);
+
+        // Contrainte unique composite Name + Unit
+        modelBuilder.Entity<Ingredient>()
+            .HasIndex(i => new { i.Name, i.Unit })
+            .IsUnique()
+            .HasDatabaseName("IX_Ingredient_Name_Unit");
     }
 }

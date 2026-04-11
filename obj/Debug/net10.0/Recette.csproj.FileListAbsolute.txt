@@ -200,3 +200,4 @@ C:\Users\eya\.Net\Recette\obj\Debug\net10.0\refint\Recette.dll
 C:\Users\eya\.Net\Recette\obj\Debug\net10.0\Recette.pdb
 C:\Users\eya\.Net\Recette\obj\Debug\net10.0\Recette.genruntimeconfig.cache
 C:\Users\eya\.Net\Recette\obj\Debug\net10.0\ref\Recette.dll
+C:\Users\eya\.Net\Recette\obj\Debug\net10.0\Recette.sourcelink.json

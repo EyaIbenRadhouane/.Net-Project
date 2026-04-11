@@ -15,6 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionString));
 // ✅ Ajouter ces lignes
+// Program.cs
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 var app = builder.Build();

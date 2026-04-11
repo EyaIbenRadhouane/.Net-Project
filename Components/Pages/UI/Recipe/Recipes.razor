@@ -1,0 +1,130 @@
+@page "/recettes"
+@rendermode InteractiveServer
+@using Recette.Services
+@using Recette.Models
+@inject IRecipeService RecipeService
+@inject NavigationManager NavManager
+
+<PageTitle>Liste des Recettes</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📖 Liste des Recettes</h3>
+    <button class="btn btn-success" @onclick="GoToAdd">
+        <span class="bi bi-plus-circle"></span> Ajouter une recette
+    </button>
+</div>
+
+@if (_isLoading)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm"></span>
+        Chargement des données...
+    </div>
+}
+else if (_recipes!.Count == 0)
+{
+    <div class="alert alert-warning">Aucune recette trouvée.</div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+    <tr>
+        <th>Nom</th>
+        <th>Catégorie</th>
+        <th>Cuisine</th>
+        <th>Personnes</th>
+        <th>Calories recette</th>
+        <th>Calories totales</th>
+        <th>Cal / personne</th>
+        <th>Actions</th>
+    </tr>
+</thead>
+<tbody>
+    @foreach (var recipe in _recipes!)
+    {
+        <tr>
+            <td>@recipe.Name</td>
+            <td>@recipe.Category</td>
+            <td>@recipe.CuisineType</td>
+            <td>@recipe.NumberOfPersons</td>
+            <td>@recipe.CaloriesRecipe.ToString("F1") kcal</td>
+            <td>@recipe.TotalCalories.ToString("F1") kcal</td>
+            <td>@recipe.CaloriesPerPerson.ToString("F1") kcal</td>
+            <td>
+                <button class="btn btn-sm btn-info me-1"
+                        @onclick="() => GoToDetail(recipe.Id)">
+                    👁️ Détail
+                </button>
+                <button class="btn btn-sm btn-warning me-1"
+                        @onclick="() => GoToEdit(recipe.Id)">
+                    ✏️ Modifier
+                </button>
+                <button class="btn btn-sm btn-danger"
+                        @onclick="() => ConfirmDelete(recipe)">
+                    🗑️ Supprimer
+                </button>
+            </td>
+        </tr>
+    }
+    
+</tbody>
+    </table>
+}
+
+@* Modal confirmation suppression *@
+@if (_recipeToDelete != null)
+{
+    <div class="modal show d-block" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmer la suppression</h5>
+                </div>
+                <div class="modal-body">
+                    Voulez-vous vraiment supprimer la recette
+                    <strong>@_recipeToDelete.Name</strong> ?
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelDelete">Annuler</button>
+                    <button class="btn btn-danger" @onclick="DeleteConfirmed">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Recipe>? _recipes;
+    private bool _isLoading = true;
+    private Recipe? _recipeToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        _recipes = await RecipeService.GetRecipesAsync();
+        _isLoading = false;
+    }
+
+    private void GoToAdd() => NavManager.NavigateTo("/recettes/ajouter");
+    private void GoToEdit(int id) => NavManager.NavigateTo($"/recettes/modifier/{id}");
+    private void GoToDetail(int id) => NavManager.NavigateTo($"/recettes/detail/{id}");
+
+    private void ConfirmDelete(Recipe recipe) => _recipeToDelete = recipe;
+    private void CancelDelete() => _recipeToDelete = null;
+
+    private async Task DeleteConfirmed()
+    {
+        if (_recipeToDelete != null)
+        {
+            await RecipeService.DeleteRecipeAsync(_recipeToDelete.Id);
+            _recipeToDelete = null;
+            await LoadData();
+        }
+    }
+}

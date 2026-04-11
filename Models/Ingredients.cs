@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using Recette.Attributes;
+
 namespace Recette.Models;
 
+[UniqueNameUnit] // 👈 Attribut au niveau de la classe
 public class Ingredient
 {
     public int Id { get; set; }
@@ -17,6 +20,5 @@ public class Ingredient
     [StringLength(20, ErrorMessage = "L'unité ne peut pas dépasser 20 caractères.")]
     public string Unit { get; set; } = string.Empty;
 
-    // Un ingrédient peut être utilisé dans plusieurs recettes
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
 }
