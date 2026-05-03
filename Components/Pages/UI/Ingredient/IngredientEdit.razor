@@ -26,7 +26,22 @@ else
             <EditForm Model="_ingredient" OnValidSubmit="HandleSubmit">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="alert alert-danger" />
-
+                @* --- APERÇU DE L'IMAGE --- *@
+                <div class="mb-3 text-center">
+                    @if (!string.IsNullOrEmpty(_ingredient.ImageUrl))
+                    {
+                        <img src="@_ingredient.ImageUrl" class="img-thumbnail" style="max-height: 150px;" alt="Aperçu" />
+                    }
+                    else
+                    {
+                        <div class="p-3 bg-light border text-muted">Aucune image définie</div>
+                    }
+                </div>
+                @* --- CHAMP D'IMPORTATION --- *@
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Changer l'image (local)</label>
+                    <InputFile OnChange="UploadFile" class="form-control" accept=".jpg,.jpeg,.png" />
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Nom</label>
                     <InputText class="form-control" @bind-Value="_ingredient.Name" />
@@ -65,6 +80,7 @@ else
 }
 
 @code {
+    @inject IWebHostEnvironment Env
     [Parameter] public int Id { get; set; }
 
     private Ingredient? _ingredient;
@@ -80,6 +96,29 @@ else
     {
         await IngredientService.UpdateIngredientAsync(_ingredient!);
         NavManager.NavigateTo("/ingredients");
+    }
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            // Générer un nom unique pour éviter les doublons
+            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
+            
+            // Chemin physique sur le serveur : wwwroot/images
+            var folderPath = Path.Combine(Env.WebRootPath, "images");
+            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+            
+            var path = Path.Combine(folderPath, fileName);
+
+            // Enregistrer le fichier
+            using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5); // Max 5MB
+            using var fileStream = new FileStream(path, FileMode.Create);
+            await stream.CopyToAsync(fileStream);
+
+            // Mettre à jour l'URL pour la base de données (chemin relatif)
+            _ingredient!.ImageUrl = $"/images/{fileName}";
+        }
     }
 
     private void Cancel() => NavManager.NavigateTo("/ingredients");

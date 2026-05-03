@@ -4,17 +4,21 @@
 @using Recette.Models
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
-
+@inject IWebHostEnvironment Env
 <PageTitle>Ajouter un Ingrédient</PageTitle>
 
 <h3>➕ Ajouter un Ingrédient</h3>
 
 <div class="row">
     <div class="col-md-6">
-        <EditForm Model="_ingredient" OnValidSubmit="HandleSubmit">
+        <EditForm Model="_ingredient" OnValidSubmit="HandleSubmit" enctype="multipart/form-data">
             <DataAnnotationsValidator />
             <ValidationSummary class="alert alert-danger" />
-
+            <div class="mb-3">
+                <label class="form-label">Changer l'image (Fichier local)</label>
+                <InputFile OnChange="HandleFileSelected" class="form-control" accept=".jpg,.jpeg,.png" />
+                <small class="text-muted">Importez une image</small>
+            </div>
             <div class="mb-3">
                 <label class="form-label">Nom</label>
                 <InputText class="form-control" @bind-Value="_ingredient.Name" placeholder="Ex: Farine" />
@@ -60,5 +64,29 @@
         NavManager.NavigateTo("/ingredients");
     }
 
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            // 1. Créer un nom de fichier unique
+            var fileName = $"{Guid.NewGuid()}_{file.Name}";
+            
+            // 2. Définir le chemin de stockage dans wwwroot/images
+            var path = Path.Combine(Env.WebRootPath, "images", fileName);
+            
+            // 3. Créer le dossier s'il n'existe pas
+            var folder = Path.Combine(Env.WebRootPath, "images");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+            // 4. Enregistrer le fichier physiquement
+            using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5); // Max 5MB
+            using var fileStream = new FileStream(path, FileMode.Create);
+            await stream.CopyToAsync(fileStream);
+
+            // 5. Mettre à jour le chemin dans l'objet ingrédient pour la DB
+            _ingredient.ImageUrl = $"/images/{fileName}";
+        }
+    }
     private void Cancel() => NavManager.NavigateTo("/ingredients");
 }

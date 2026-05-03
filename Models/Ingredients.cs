@@ -21,4 +21,5 @@ public class Ingredient
     public string Unit { get; set; } = string.Empty;
 
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
+    public string? ImageUrl { get; set; }
 }

@@ -23,7 +23,11 @@ else
         <div class="card-body">
             <EditForm Model="_recipe" OnValidSubmit="HandleSubmit">
                 <DataAnnotationsValidator />
-
+                  <div class="mb-3">
+                <label class="form-label">Changer l'image (Fichier local)</label>
+                <InputFile OnChange="HandleFileSelected" class="form-control" accept=".jpg,.jpeg,.png" />
+                <small class="text-muted">Importez une image</small>
+                </div>
                 <!-- 📋 Champs de base de la recette -->
                 <div class="mb-3">
                     <label class="form-label">Nom de la recette</label>
@@ -182,7 +186,30 @@ else
     private bool _isEditMode = false;
     private bool _isLoading = false;
     private string _errorMessage = string.Empty;
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            // 1. Créer un nom de fichier unique
+            var fileName = $"{Guid.NewGuid()}_{file.Name}";
+            
+            // 2. Définir le chemin de stockage dans wwwroot/images
+            var path = Path.Combine(Env.WebRootPath, "images", fileName);
+            
+            // 3. Créer le dossier s'il n'existe pas
+            var folder = Path.Combine(Env.WebRootPath, "images");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
+            // 4. Enregistrer le fichier physiquement
+            using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5); // Max 5MB
+            using var fileStream = new FileStream(path, FileMode.Create);
+            await stream.CopyToAsync(fileStream);
+
+            // 5. Mettre à jour le chemin dans l'objet ingrédient pour la DB
+            _ingredient.ImageUrl = $"/images/{fileName}";
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         // 1️⃣ Charger la liste des ingrédients disponibles

@@ -26,16 +26,7 @@ public class Recipe
 
     // une recette peut avoir plusieurs ingrédients
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
-
-
-
-
-
-
-
-
-
-
+    public string? ImageUrl { get; set; }
     // Propriété calculée (non stockée en BDD)
     public double TotalCalories =>
         RecipeIngredients.Sum(ri => ri.Quantity * (ri.Ingredient?.CaloriesPerUnit ?? 0));
