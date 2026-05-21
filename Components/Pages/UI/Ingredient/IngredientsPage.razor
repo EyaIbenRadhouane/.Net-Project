@@ -3,6 +3,9 @@
 @using Recette.Services
 @using Recette.Models
 @using IngredientModel = Recette.Models.Ingredient
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
 
@@ -144,7 +147,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _ingredients = await IngredientService.GetIngredientsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        _ingredients = (await IngredientService.GetIngredientsAsync())
+            .Where(i => i.ChefId == userId)
+            .ToList();
         _isLoading = false;
     }
 

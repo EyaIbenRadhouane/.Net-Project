@@ -2,6 +2,9 @@
 @rendermode InteractiveServer
 @using Recette.Services
 @using Recette.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IRecipeService RecipeService
 @inject NavigationManager NavManager
 
@@ -223,7 +226,13 @@ else
     private async Task LoadData()
     {
         _isLoading = true;
-        _recipes = await RecipeService.GetRecipesAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+_recipes = (await RecipeService.GetRecipesAsync())
+    .Where(r => r.ChefId == userId)
+    .ToList();
         _isLoading = false;
     }
 
