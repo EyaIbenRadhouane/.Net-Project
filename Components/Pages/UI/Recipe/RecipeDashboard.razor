@@ -1,0 +1,353 @@
+@page "/recettes/dashboard"
+@rendermode InteractiveServer
+@using Recette.Services
+@using Recette.Models
+@using Radzen
+@using Radzen.Blazor
+@inject IRecipeService RecipeService
+@inject NavigationManager NavManager
+
+<PageTitle>Dashboard Analytique – Recettes</PageTitle>
+
+<h3 class="mb-4">📊 Dashboard Analytique des Recettes</h3>
+
+@if (_isLoading)
+{
+    <div class="alert alert-info">
+        <span class="spinner-border spinner-border-sm"></span> Chargement des données...
+    </div>
+}
+else
+{
+    <!-- ===================== KPI CARDS ===================== -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-2 fw-bold">@_recipes.Count</div>
+                        <div>Total recettes</div>
+                    </div>
+                    <span class="fs-1">📖</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-2 fw-bold">@_categoryData.Count</div>
+                        <div>Catégories</div>
+                    </div>
+                    <span class="fs-1">🏷️</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-2 fw-bold">@_cuisineData.Count</div>
+                        <div>Types de cuisine</div>
+                    </div>
+                    <span class="fs-1">🌍</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-2 fw-bold">@_avgCaloriesPerPerson.ToString("F0") kcal</div>
+                        <div>Moy. cal/personne</div>
+                    </div>
+                    <span class="fs-1">🔥</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== GRAPHIQUES ===================== -->
+    <div class="row g-4 mb-4">
+
+        <!-- Pie Chart : Répartition par Catégorie -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-bold">🥗 Répartition par Catégorie</div>
+                <div class="card-body">
+                    <RadzenChart SeriesClick="OnCategoryClick">
+                        <RadzenPieSeries Data="@_categoryData"
+                                         Title="Recettes"
+                                         CategoryProperty="Category"
+                                         ValueProperty="Count"
+                                         TItem="CategoryStat">
+                            <TooltipTemplate Context="item">
+                                <div>
+                                    <strong>@item.Category</strong><br />
+                                    @item.Count recette(s)<br />
+                                    Moy. @item.AvgCaloriesPerPerson.ToString("F0") kcal/pers
+                                </div>
+                            </TooltipTemplate>
+                        </RadzenPieSeries>
+                        <RadzenLegend Position="LegendPosition.Bottom" />
+                    </RadzenChart>
+
+                    @if (_selectedCategory != null)
+                    {
+                        <div class="mt-2 text-center">
+                            <span class="badge bg-primary">Filtre : @_selectedCategory</span>
+                            <button class="btn btn-sm btn-outline-secondary ms-2"
+                                    @onclick="ClearFilter">✕ Effacer</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Donut Chart : Répartition par Type de Cuisine -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-bold">🌍 Répartition par Cuisine</div>
+                <div class="card-body">
+                    <RadzenChart>
+                        <RadzenDonutSeries Data="@_cuisineData"
+                                           Title="Cuisines"
+                                           CategoryProperty="CuisineType"
+                                           ValueProperty="Count"
+                                           TItem="CuisineStat">
+                            <TooltipTemplate Context="item">
+                                <div>
+                                    <strong>@item.CuisineType</strong><br />
+                                    @item.Count recette(s)
+                                </div>
+                            </TooltipTemplate>
+                        </RadzenDonutSeries>
+                        <RadzenLegend Position="LegendPosition.Bottom" />
+                    </RadzenChart>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radial Gauge : Moyenne Calories/Personne -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-bold">⚡ Jauge Calorique Moyenne</div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <RadzenRadialGauge Style="width:100%;max-width:280px;height:200px">
+                        <RadzenRadialGaugeScale Min="0"
+                                               Max="@_maxCaloriesPerPerson"
+                                               Step="@(_maxCaloriesPerPerson / 5)"
+                                               TickPosition="GaugeTickPosition.Outside"
+                                               MinorStep="@(_maxCaloriesPerPerson / 20)">
+                            <RadzenRadialGaugeScaleRange From="0"
+                                                         To="@(_maxCaloriesPerPerson * 0.33)"
+                                                         Fill="green" />
+                            <RadzenRadialGaugeScaleRange From="@(_maxCaloriesPerPerson * 0.33)"
+                                                         To="@(_maxCaloriesPerPerson * 0.66)"
+                                                         Fill="orange" />
+                            <RadzenRadialGaugeScaleRange From="@(_maxCaloriesPerPerson * 0.66)"
+                                                         To="@_maxCaloriesPerPerson"
+                                                         Fill="red" />
+                            <RadzenRadialGaugeScalePointer Value="@_avgCaloriesPerPerson"
+                                                           ShowValue="true"
+                                                           Length="0.6" />
+                        </RadzenRadialGaugeScale>
+                    </RadzenRadialGauge>
+
+                    <p class="text-muted mt-2 text-center">
+                        Moyenne : <strong>@_avgCaloriesPerPerson.ToString("F0") kcal</strong> / personne<br />
+                        <small>
+                            🟢 Léger &lt; @((int)(_maxCaloriesPerPerson * 0.33)) kcal |
+                            🟠 Modéré |
+                            🔴 Riche &gt; @((int)(_maxCaloriesPerPerson * 0.66)) kcal
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bar Chart : Calories moyennes par catégorie -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold">🔥 Calories moyennes par catégorie (kcal / personne)</div>
+        <div class="card-body">
+            <RadzenChart Style="height:220px">
+                <RadzenColumnSeries Data="@_categoryData"
+                                    Title="Moy. kcal/pers"
+                                    CategoryProperty="Category"
+                                    ValueProperty="AvgCaloriesPerPerson"
+                                    TItem="CategoryStat"
+                                    Fill="#e74c3c" />
+                <RadzenCategoryAxis Padding="20" />
+                <RadzenValueAxis>
+                    <RadzenGridLines Visible="true" />
+                </RadzenValueAxis>
+                <RadzenLegend Visible="false" />
+            </RadzenChart>
+        </div>
+    </div>
+
+    <!-- ===================== TABLEAU FILTRÉ (CROSS-FILTERING) ===================== -->
+    <div class="card shadow-sm">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            <span>
+                📋 Recettes
+                @if (_selectedCategory != null)
+                {
+                    <span class="badge bg-primary ms-2">@_selectedCategory</span>
+                    <small class="text-muted ms-2">(@FilteredRecipes.Count résultat(s))</small>
+                }
+                else
+                {
+                    <small class="text-muted ms-2">(toutes – @_recipes.Count recettes)</small>
+                }
+            </span>
+            <button class="btn btn-sm btn-outline-success"
+                    @onclick='() => NavManager.NavigateTo("/recettes/ajouter")'>
+                + Ajouter
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nom</th>
+                        <th>Catégorie</th>
+                        <th>Cuisine</th>
+                        <th>Personnes</th>
+                        <th>Cal. totales</th>
+                        <th>Cal./personne</th>
+                        <th>Niveau</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in FilteredRecipes)
+                    {
+                        <tr>
+                            <td><strong>@r.Name</strong></td>
+                            <td>@r.Category</td>
+                            <td>@r.CuisineType</td>
+                            <td>@r.NumberOfPersons</td>
+                            <td>@r.TotalCalories.ToString("F0") kcal</td>
+                            <td>@r.CaloriesPerPerson.ToString("F0") kcal</td>
+                            <td>
+                                @{
+                                    var (badge, label) = GetCalorieLevel(r.CaloriesPerPerson);
+                                }
+                                <span class="badge @badge">@label</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (FilteredRecipes.Count == 0)
+            {
+                <div class="alert alert-warning m-3">Aucune recette dans cette catégorie.</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    // ─── Modèles de données agrégées ───────────────────────────────────────────
+
+    public class CategoryStat
+    {
+        public string Category { get; set; } = "";
+        public int Count { get; set; }
+        public double AvgCaloriesPerPerson { get; set; }
+    }
+
+    public class CuisineStat
+    {
+        public string CuisineType { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    // ─── État du composant ─────────────────────────────────────────────────────
+
+    private List<Recipe> _recipes = new();
+    private List<CategoryStat> _categoryData = new();
+    private List<CuisineStat> _cuisineData = new();
+
+    private double _avgCaloriesPerPerson;
+    private double _maxCaloriesPerPerson;
+    private bool _isLoading = true;
+
+    private string? _selectedCategory;
+
+    // ─── Données filtrées (cross-filtering) ───────────────────────────────────
+
+    private List<Recipe> FilteredRecipes =>
+        _selectedCategory == null
+            ? _recipes
+            : _recipes.Where(r => r.Category == _selectedCategory).ToList();
+
+    // ─── Initialisation ────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _recipes = await RecipeService.GetRecipesAsync();
+        BuildAggregations();
+        _isLoading = false;
+    }
+
+    /// <summary>
+    /// Construit toutes les agrégations LINQ GroupBy.
+    /// </summary>
+    private void BuildAggregations()
+    {
+        // ── 1. GroupBy Catégorie ──────────────────────────────────────────────
+        _categoryData = _recipes
+            .GroupBy(r => r.Category)
+            .Select(g => new CategoryStat
+            {
+                Category = g.Key,
+                Count = g.Count(),
+                AvgCaloriesPerPerson = g.Average(r => r.CaloriesPerPerson)
+            })
+            .OrderByDescending(c => c.Count)
+            .ToList();
+
+        // ── 2. GroupBy Type de Cuisine ────────────────────────────────────────
+        _cuisineData = _recipes
+            .GroupBy(r => r.CuisineType)
+            .Select(g => new CuisineStat
+            {
+                CuisineType = g.Key,
+                Count = g.Count()
+            })
+            .OrderByDescending(c => c.Count)
+            .ToList();
+
+        // ── 3. KPIs globaux ───────────────────────────────────────────────────
+        _avgCaloriesPerPerson = _recipes.Any()
+            ? _recipes.Average(r => r.CaloriesPerPerson)
+            : 0;
+
+        _maxCaloriesPerPerson = _recipes.Any()
+            ? Math.Max(_recipes.Max(r => r.CaloriesPerPerson), 800)
+            : 800;
+    }
+
+    // ─── Cross-filtering ───────────────────────────────────────────────────────
+
+    private void OnCategoryClick(SeriesClickEventArgs args)
+    {
+        var clicked = args.Category?.ToString();
+        // Re-cliquer sur la même catégorie efface le filtre
+        _selectedCategory = _selectedCategory == clicked ? null : clicked;
+    }
+
+    private void ClearFilter() => _selectedCategory = null;
+
+    // ─── Helpers UI ────────────────────────────────────────────────────────────
+
+    private (string badgeClass, string label) GetCalorieLevel(double cal) => cal switch
+    {
+        < 300 => ("bg-success", "Léger"),
+        < 600 => ("bg-warning text-dark", "Modéré"),
+        _ => ("bg-danger", "Riche")
+    };
+}

@@ -3,9 +3,11 @@
 @rendermode InteractiveServer
 @using Recette.Services
 @using Recette.Models
+@using System.IO
 @inject IRecipeService RecipeService
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
+@inject IWebHostEnvironment Env
 
 <PageTitle>@(_isEditMode ? "Modifier" : "Ajouter") une recette</PageTitle>
 
@@ -23,16 +25,29 @@ else
         <div class="card-body">
             <EditForm Model="_recipe" OnValidSubmit="HandleSubmit">
                 <DataAnnotationsValidator />
-                  <div class="mb-3">
-                <label class="form-label">Changer l'image (Fichier local)</label>
-                <InputFile OnChange="HandleFileSelected" class="form-control" accept=".jpg,.jpeg,.png" />
-                <small class="text-muted">Importez une image</small>
+
+                @* --- SECTION IMAGE --- *@
+                <div class="mb-3 text-center">
+                    @if (!string.IsNullOrEmpty(_recipe.ImageUrl))
+                    {
+                        <img src="@_recipe.ImageUrl" class="img-thumbnail" style="max-height: 150px;" alt="Aperçu" />
+                    }
+                    else
+                    {
+                        <div class="p-3 bg-light border text-muted">Aucune image définie</div>
+                    }
                 </div>
-                <!-- 📋 Champs de base de la recette -->
+
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Photo de la recette (local)</label>
+                    @* Correction : Le nom de la méthode doit correspondre à celui dans @code *@
+                    <InputFile OnChange="UploadRecipeImage" class="form-control" accept=".jpg,.jpeg,.png" />
+                </div>
+
+                @* --- Champs de base --- *@
                 <div class="mb-3">
                     <label class="form-label">Nom de la recette</label>
-                    <InputText class="form-control" @bind-Value="_recipe.Name"
-                               placeholder="ex : Salade Tunisienne" />
+                    <InputText class="form-control" @bind-Value="_recipe.Name" placeholder="ex : Salade Tunisienne" />
                     <ValidationMessage For="() => _recipe.Name" class="text-danger" />
                 </div>
 
@@ -44,8 +59,7 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Calories de la recette (kcal)</label>
-                    <InputNumber class="form-control" @bind-Value="_recipe.CaloriesRecipe"
-                                 placeholder="ex : 450" />
+                    <InputNumber class="form-control" @bind-Value="_recipe.CaloriesRecipe" placeholder="ex : 450" />
                 </div>
 
                 <div class="mb-3">
@@ -74,21 +88,19 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Instructions</label>
-                    <InputTextArea class="form-control" @bind-Value="_recipe.Instructions"
-                                   rows="4" placeholder="Décrivez les étapes..." />
+                    <InputTextArea class="form-control" @bind-Value="_recipe.Instructions" rows="4" placeholder="Décrivez les étapes..." />
                     <ValidationMessage For="() => _recipe.Instructions" class="text-danger" />
                 </div>
 
-                <!-- 🥗 Section Ingrédients -->
+                @* --- Section Ingrédients --- *@
                 <hr />
                 <h5>🥗 Ingrédients</h5>
                 
-                <!-- Formulaire d'ajout d'ingrédient -->
                 <div class="row g-2 mb-3 align-items-end">
                     <div class="col-md-5">
                         <label class="form-label">Ingrédient</label>
                         <InputSelect class="form-select" @bind-Value="_newIngredientId">
-                            <option value="0">-- Sélectionner un ingrédient --</option>
+                            <option value="0">-- Sélectionner --</option>
                             @foreach (var ingredient in _availableIngredients)
                             {
                                 <option value="@ingredient.Id">@ingredient.Name (@ingredient.Unit)</option>
@@ -97,13 +109,10 @@ else
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Quantité</label>
-                        <InputNumber class="form-control" @bind-Value="_newIngredientQuantity" 
-                                     step="0.01" placeholder="ex : 2.5" />
+                        <InputNumber class="form-control" @bind-Value="_newIngredientQuantity" step="0.01" />
                     </div>
                     <div class="col-md-3">
-                        <button type="button" class="btn btn-success w-100" @onclick="AddIngredientToRecipe">
-                            + Ajouter
-                        </button>
+                        <button type="button" class="btn btn-success w-100" @onclick="AddIngredientToRecipe">+ Ajouter</button>
                     </div>
                 </div>
                 
@@ -112,7 +121,6 @@ else
                     <div class="alert alert-danger py-1">@_ingredientError</div>
                 }
 
-                <!-- 📋 Liste des ingrédients ajoutés -->
                 @if (_recipe.RecipeIngredients?.Any() == true)
                 {
                     <table class="table table-sm table-bordered">
@@ -134,25 +142,17 @@ else
                                     <td>@ri.Ingredient?.Unit</td>
                                     <td>@(ri.Quantity * (ri.Ingredient?.CaloriesPerUnit ?? 0)) kcal</td>
                                     <td>
-                                        <button type="button" class="btn btn-danger btn-sm" 
-                                                @onclick="() => RemoveIngredientFromRecipe(ri)">
-                                            ✕
-                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveIngredientFromRecipe(ri)">✕</button>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                     
-                    <!-- 📊 Totaux calculés -->
                     <div class="alert alert-info mb-3">
                         <strong>🔥 Total calories :</strong> @_recipe.TotalCalories.ToString("0.00") kcal<br />
                         <strong>👤 Calories par personne :</strong> @_recipe.CaloriesPerPerson.ToString("0.00") kcal
                     </div>
-                }
-                else
-                {
-                    <div class="alert alert-warning">Aucun ingrédient ajouté pour le moment.</div>
                 }
 
                 @if (!string.IsNullOrEmpty(_errorMessage))
@@ -164,9 +164,7 @@ else
                     <button type="submit" class="btn btn-primary">
                         @(_isEditMode ? "💾 Enregistrer" : "✅ Ajouter")
                     </button>
-                    <button type="button" class="btn btn-secondary" @onclick="GoToList">
-                        Annuler
-                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="GoToList">Annuler</button>
                 </div>
 
             </EditForm>
@@ -186,57 +184,27 @@ else
     private bool _isEditMode = false;
     private bool _isLoading = false;
     private string _errorMessage = string.Empty;
-    private async Task HandleFileSelected(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        if (file != null)
-        {
-            // 1. Créer un nom de fichier unique
-            var fileName = $"{Guid.NewGuid()}_{file.Name}";
-            
-            // 2. Définir le chemin de stockage dans wwwroot/images
-            var path = Path.Combine(Env.WebRootPath, "images", fileName);
-            
-            // 3. Créer le dossier s'il n'existe pas
-            var folder = Path.Combine(Env.WebRootPath, "images");
-            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-            // 4. Enregistrer le fichier physiquement
-            using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5); // Max 5MB
-            using var fileStream = new FileStream(path, FileMode.Create);
-            await stream.CopyToAsync(fileStream);
-
-            // 5. Mettre à jour le chemin dans l'objet ingrédient pour la DB
-            _ingredient.ImageUrl = $"/images/{fileName}";
-        }
-    }
     protected override async Task OnInitializedAsync()
     {
-        // 1️⃣ Charger la liste des ingrédients disponibles
         await LoadIngredientsAsync();
         
-        // 2️⃣ Si mode édition, charger la recette
         if (Id.HasValue)
         {
             _isEditMode = true;
             _isLoading = true;
-            StateHasChanged();
             
             var found = await RecipeService.GetRecipeByIdAsync(Id.Value);
             if (found != null)
             {
                 _recipe = found;
-                
-                // 🔄 Associer les objets Ingredient complets aux RecipeIngredients
-                // (car l'API peut ne pas retourner les données de navigation)
                 if (_recipe.RecipeIngredients != null)
                 {
                     foreach (var ri in _recipe.RecipeIngredients)
                     {
                         if (ri.IngredientId > 0 && ri.Ingredient == null)
                         {
-                            ri.Ingredient = _availableIngredients
-                                .FirstOrDefault(i => i.Id == ri.IngredientId);
+                            ri.Ingredient = _availableIngredients.FirstOrDefault(i => i.Id == ri.IngredientId);
                         }
                     }
                 }
@@ -246,88 +214,81 @@ else
                 NavManager.NavigateTo("/recettes");
             }
             _isLoading = false;
-            StateHasChanged();
         }
     }
 
     private async Task LoadIngredientsAsync()
     {
-        _availableIngredients = await IngredientService.GetIngredientsAsync() 
-            ?? new List<Ingredient>();
+        var result = await IngredientService.GetIngredientsAsync();
+        _availableIngredients = result ?? new List<Ingredient>();
+    }
+
+    private async Task UploadRecipeImage(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            try 
+            {
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
+                var folderPath = Path.Combine(Env.WebRootPath, "images", "recipes");
+                
+                if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+                
+                var path = Path.Combine(folderPath, fileName);
+
+                using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5);
+                using var fileStream = new FileStream(path, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
+
+                // Correction : On assigne l'URL à _recipe.ImageUrl et non à _ingredient
+                _recipe.ImageUrl = $"/images/recipes/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Erreur lors de l'upload : {ex.Message}";
+            }
+        }
     }
 
     private void AddIngredientToRecipe()
     {
         _ingredientError = string.Empty;
-        
-        // ✅ Validations
-        if (_newIngredientId <= 0)
-        {
-            _ingredientError = "⚠️ Veuillez sélectionner un ingrédient.";
-            return;
-        }
-        
-        if (_newIngredientQuantity <= 0)
-        {
-            _ingredientError = "⚠️ La quantité doit être supérieure à 0.";
-            return;
-        }
+        if (_newIngredientId <= 0) { _ingredientError = "⚠️ Sélectionnez un ingrédient."; return; }
+        if (_newIngredientQuantity <= 0) { _ingredientError = "⚠️ Quantité invalide."; return; }
 
-        var ingredient = _availableIngredients
-            .FirstOrDefault(i => i.Id == _newIngredientId);
-            
-        if (ingredient == null)
+        var ingredient = _availableIngredients.FirstOrDefault(i => i.Id == _newIngredientId);
+        if (ingredient == null) return;
+
+        if (_recipe.RecipeIngredients?.Any(ri => ri.IngredientId == _newIngredientId) == true)
         {
-            _ingredientError = "⚠️ Ingrédient non trouvé.";
+            _ingredientError = "⚠️ Déjà présent.";
             return;
         }
 
-        // 🚫 Vérifier si l'ingrédient est déjà dans la recette
-        var existing = _recipe.RecipeIngredients?
-            .FirstOrDefault(ri => ri.IngredientId == _newIngredientId);
-            
-        if (existing != null)
-        {
-            _ingredientError = "⚠️ Cet ingrédient est déjà dans la recette.";
-            return;
-        }
+        if (_recipe.RecipeIngredients == null) _recipe.RecipeIngredients = new List<RecipeIngredient>();
 
-        // ➕ Initialiser la collection si nécessaire
-        if (_recipe.RecipeIngredients == null)
-            _recipe.RecipeIngredients = new List<RecipeIngredient>();
-
-        // 🆕 Créer et ajouter le nouvel élément
-        var recipeIngredient = new RecipeIngredient
+        _recipe.RecipeIngredients.Add(new RecipeIngredient
         {
             IngredientId = _newIngredientId,
-            Ingredient = ingredient, // Important pour l'affichage immédiat
+            Ingredient = ingredient,
             Quantity = _newIngredientQuantity
-        };
+        });
 
-        _recipe.RecipeIngredients.Add(recipeIngredient);
-
-        // 🔄 Réinitialiser les champs de saisie
         _newIngredientId = 0;
         _newIngredientQuantity = 1;
-        
-        // 🎯 Forcer le re-rendu pour afficher les changements
-        StateHasChanged();
     }
 
     private void RemoveIngredientFromRecipe(RecipeIngredient recipeIngredient)
     {
         _recipe.RecipeIngredients?.Remove(recipeIngredient);
-        StateHasChanged();
     }
 
     private async Task HandleSubmit()
     {
-        _errorMessage = string.Empty;
-        
-        // ✅ Validation : au moins un ingrédient requis
         if (_recipe.RecipeIngredients == null || !_recipe.RecipeIngredients.Any())
         {
-            _errorMessage = "⚠️ Veuillez ajouter au moins un ingrédient à la recette.";
+            _errorMessage = "⚠️ Ajoutez au moins un ingrédient.";
             return;
         }
         
@@ -343,12 +304,8 @@ else
         catch (Exception ex)
         {
             _errorMessage = $"❌ Erreur : {ex.Message}";
-            // 📝 Pour le débogage : Console.WriteLine(ex);
         }
     }
 
-    private void GoToList()
-    {
-        NavManager.NavigateTo("/recettes");
-    }
+    private void GoToList() => NavManager.NavigateTo("/recettes");
 }

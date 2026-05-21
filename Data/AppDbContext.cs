@@ -1,12 +1,15 @@
-using Microsoft.EntityFrameworkCore;
-using Recette.Models;
 namespace Recette.Data;
+using Recette.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore; // Necessary
+using Microsoft.EntityFrameworkCore;
 
-public class AppDbContext : DbContext
+
+
+// We now inherit from IdentityDbContext!
+public class AppDbContext : IdentityDbContext<IdentityUser>
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Ingredient> Ingredients { get; set; }
     public DbSet<Recipe> Recipes { get; set; }

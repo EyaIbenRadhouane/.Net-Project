@@ -1,9 +1,11 @@
 @page "/ingredients/modifier/{Id:int}"
+@attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveServer
 @using Recette.Services
 @using Recette.Models
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
+@inject IWebHostEnvironment Env
 
 <PageTitle>Modifier l'Ingrédient</PageTitle>
 
@@ -22,11 +24,12 @@ else if (_ingredient == null)
 else
 {
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <EditForm Model="_ingredient" OnValidSubmit="HandleSubmit">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="alert alert-danger" />
-                @* --- APERÇU DE L'IMAGE --- *@
+                
+                <!-- Image Preview -->
                 <div class="mb-3 text-center">
                     @if (!string.IsNullOrEmpty(_ingredient.ImageUrl))
                     {
@@ -37,38 +40,103 @@ else
                         <div class="p-3 bg-light border text-muted">Aucune image définie</div>
                     }
                 </div>
-                @* --- CHAMP D'IMPORTATION --- *@
+                
+                <!-- Image Upload -->
                 <div class="mb-3">
-                    <label class="form-label font-weight-bold">Changer l'image (local)</label>
+                    <label class="form-label font-weight-bold">Changer l'image</label>
                     <InputFile OnChange="UploadFile" class="form-control" accept=".jpg,.jpeg,.png" />
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Nom</label>
-                    <InputText class="form-control" @bind-Value="_ingredient.Name" />
-                    <ValidationMessage For="() => _ingredient.Name" />
+
+                <!-- Basic Info -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nom</label>
+                        <InputText class="form-control" @bind-Value="_ingredient.Name" />
+                        <ValidationMessage For="() => _ingredient.Name" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Catégorie</label>
+                        <InputSelect class="form-select" @bind-Value="_ingredient.Category">
+                            <option value="@IngredientCategory.Autre">-- Choisir --</option>
+                            <option value="@IngredientCategory.Legumes">Légumes</option>
+                            <option value="@IngredientCategory.Fruits">Fruits</option>
+                            <option value="@IngredientCategory.Proteines">Protéines</option>
+                            <option value="@IngredientCategory.Cereales">Céréales</option>
+                            <option value="@IngredientCategory.Produits_Laitiers">Produits laitiers</option>
+                            <option value="@IngredientCategory.Boissons">Boissons</option>
+                            <option value="@IngredientCategory.Huiles">Huiles et graisses</option>
+                            <option value="@IngredientCategory.Condiments">Condiments et épices</option>
+                            <option value="@IngredientCategory.Legumineuses">Légumineuses</option>
+                            <option value="@IngredientCategory.Autre">Autre</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => _ingredient.Category" />
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Calories par unité</label>
-                    <InputNumber class="form-control" @bind-Value="_ingredient.CaloriesPerUnit" />
-                    <ValidationMessage For="() => _ingredient.CaloriesPerUnit" />
+                <!-- Calories & Unit -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Calories par unité</label>
+                        <InputNumber class="form-control" @bind-Value="_ingredient.CaloriesPerUnit" />
+                        <ValidationMessage For="() => _ingredient.CaloriesPerUnit" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Unité de mesure</label>
+                        <InputSelect class="form-select" @bind-Value="_ingredient.Unit">
+                            <option value="">-- Choisir --</option>
+                            <option>g</option>
+                            <option>kg</option>
+                            <option>ml</option>
+                            <option>cl</option>
+                            <option>L</option>
+                            <option>unité</option>
+                            <option>c.à.s</option>
+                            <option>c.à.c</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => _ingredient.Unit" />
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Unité de mesure</label>
-                    <InputSelect class="form-select" @bind-Value="_ingredient.Unit">
-                        <option value="">-- Choisir --</option>
-                        <option>g</option>
-                        <option>kg</option>
-                        <option>ml</option>
-                        <option>cl</option>
-                        <option>L</option>
-                        <option>unité</option>
-                        <option>c.à.s</option>
-                        <option>c.à.c</option>
-                    </InputSelect>
-                    <ValidationMessage For="() => _ingredient.Unit" />
-                </div>
+                <!-- Nutritional Values -->
+                <fieldset class="border p-3 mb-3 rounded" style="background-color: #f9f9f9;">
+                    <legend class="w-auto px-2">🥗 Valeurs nutritionnelles (optionnelles)</legend>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Protéines (g)</label>
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Proteins" placeholder="Ex: 10" />
+                            <ValidationMessage For="() => _ingredient.Proteins" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Glucides (g)</label>
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Carbohydrates" placeholder="Ex: 20" />
+                            <ValidationMessage For="() => _ingredient.Carbohydrates" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Lipides (g)</label>
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Lipids" placeholder="Ex: 5" />
+                            <ValidationMessage For="() => _ingredient.Lipids" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fibres (g)</label>
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Fiber" placeholder="Ex: 3" />
+                            <ValidationMessage For="() => _ingredient.Fiber" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Sucres (g)</label>
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Sugar" placeholder="Ex: 5" />
+                            <ValidationMessage For="() => _ingredient.Sugar" />
+                        </div>
+                    </div>
+                </fieldset>
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-warning">💾 Mettre à jour</button>
@@ -80,7 +148,6 @@ else
 }
 
 @code {
-    @inject IWebHostEnvironment Env
     [Parameter] public int Id { get; set; }
 
     private Ingredient? _ingredient;
@@ -97,26 +164,22 @@ else
         await IngredientService.UpdateIngredientAsync(_ingredient!);
         NavManager.NavigateTo("/ingredients");
     }
+
     private async Task UploadFile(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file != null)
         {
-            // Générer un nom unique pour éviter les doublons
             var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
-            
-            // Chemin physique sur le serveur : wwwroot/images
             var folderPath = Path.Combine(Env.WebRootPath, "images");
             if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
             
             var path = Path.Combine(folderPath, fileName);
 
-            // Enregistrer le fichier
-            using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5); // Max 5MB
+            using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5);
             using var fileStream = new FileStream(path, FileMode.Create);
             await stream.CopyToAsync(fileStream);
 
-            // Mettre à jour l'URL pour la base de données (chemin relatif)
             _ingredient!.ImageUrl = $"/images/{fileName}";
         }
     }

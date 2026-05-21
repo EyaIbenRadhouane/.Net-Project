@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\eya\\.Net\\Recette\\Recette.csproj": {}
+    "C:\\Users\\achref\\Downloads\\Recette\\Recette\\Recette.csproj": {}
   },
   "projects": {
-    "C:\\Users\\eya\\.Net\\Recette\\Recette.csproj": {
+    "C:\\Users\\achref\\Downloads\\Recette\\Recette\\Recette.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\eya\\.Net\\Recette\\Recette.csproj",
+        "projectUniqueName": "C:\\Users\\achref\\Downloads\\Recette\\Recette\\Recette.csproj",
         "projectName": "Recette",
-        "projectPath": "C:\\Users\\eya\\.Net\\Recette\\Recette.csproj",
-        "packagesPath": "C:\\Users\\eya\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\eya\\.Net\\Recette\\obj\\",
+        "projectPath": "C:\\Users\\achref\\Downloads\\Recette\\Recette\\Recette.csproj",
+        "packagesPath": "C:\\Users\\achref\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\achref\\Downloads\\Recette\\Recette\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\eya\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\achref\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -24,6 +24,7 @@
         },
         "frameworks": {
           "net10.0": {
+            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -38,17 +39,26 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.App.Internal.Assets": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[10.0.2, )",
+              "version": "[10.0.8, )",
               "autoReferenced": true
+            },
+            "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[10.0.8, )"
+            },
+            "Microsoft.AspNetCore.Identity.UI": {
+              "target": "Package",
+              "version": "[10.0.8, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
@@ -59,6 +69,10 @@
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
               "version": "[10.0.5, )"
+            },
+            "Radzen.Blazor": {
+              "target": "Package",
+              "version": "[10.3.2, )"
             }
           },
           "imports": [
@@ -80,7 +94,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
