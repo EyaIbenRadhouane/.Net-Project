@@ -1,36 +1,41 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Recette</a>
-    </div>
-</div>
+﻿<nav class="nav flex-column">
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <AuthorizeView Roles="Chef">
+        <Authorized>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="recettes/dashboard">
+                    <span class="bi bi-bar-chart-fill"></span> Stat recettes
+                </NavLink>
+            </div>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="recettes">
+                    <span class="bi bi-journal-richtext"></span> Liste recettes
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="ingredients/dashboard">
-                <span class="bi bi-speedometer2"></span> Dashboard Ingrédients
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="ingredients/dashboard">
+                    <span class="bi bi-speedometer2"></span> Stat ingrédients
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="recettes">
-                <span class="bi bi-journal-richtext"></span> Recettes
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="ingredients">
+                    <span class="bi bi-list-nested-nav-menu"></span> Liste ingrédients
+                </NavLink>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
-        <!-- ✅ Nouveau lien Dashboard Analytique -->
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="recettes/dashboard">
-                <span class="bi bi-bar-chart-fill"></span> Dashboard Analytique
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin/chefs">
+                    <span class="bi bi-house-door-fill-nav-menu"></span> Liste des chefs
+                </NavLink>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+</nav>

@@ -1,0 +1,97 @@
+@page "/signup"
+@using Microsoft.AspNetCore.Identity
+@using Recette.Models
+@rendermode InteractiveServer
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager NavManager
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4 card shadow-sm p-4">
+        <h3 class="text-center mb-4">Inscription Chef</h3>
+
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <div class="alert alert-danger">@Error</div>
+        }
+
+        @if (!string.IsNullOrEmpty(Success))
+        {
+            <div class="alert alert-success">@Success</div>
+        }
+
+        <EditForm Model="@NewUser" OnValidSubmit="@HandleValidSubmit" data-enhance="false">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label>Email</label>
+                <InputText @bind-Value="NewUser.Mail" class="form-control" />
+                <ValidationMessage For="@(() => NewUser.Mail)" />
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <InputText @bind-Value="NewUser.Password" type="password" class="form-control" />
+                <ValidationMessage For="@(() => NewUser.Password)" />
+            </div>
+
+            <div class="mb-3">
+                <label>Verify Password</label>
+                <InputText @bind-Value="NewUser.VerifyPassword" type="password" class="form-control" />
+                <ValidationMessage For="@(() => NewUser.VerifyPassword)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
+        </EditForm>
+
+        <div class="text-center mt-3">
+            <a href="/login">Déjà un compte ? Login</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SignupModel NewUser = new();
+    private string? Error;
+    private string? Success;
+
+    private async Task HandleValidSubmit()
+    {
+        Error = null;
+        Success = null;
+
+        if (NewUser.Password != NewUser.VerifyPassword)
+        {
+            Error = "Les mots de passe ne sont pas identiques.";
+            return;
+        }
+
+        var exists = await UserManager.FindByEmailAsync(NewUser.Mail);
+
+        if (exists != null)
+        {
+            Error = "Utilisateur existe déjà.";
+            return;
+        }
+
+        var user = new IdentityUser
+        {
+            UserName = NewUser.Mail,
+            Email = NewUser.Mail,
+            EmailConfirmed = false
+        };
+
+        var result = await UserManager.CreateAsync(user, NewUser.Password);
+
+        if (result.Succeeded)
+        {
+            await UserManager.AddToRoleAsync(user, "Chef");
+            Success = "Inscription réussie. Attendez la validation de l'admin.";
+            NavManager.NavigateTo("/login");
+        }
+        else
+        {
+            Error = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+}

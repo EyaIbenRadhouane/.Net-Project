@@ -1,0 +1,86 @@
+@page "/admin/chefs"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject UserManager<IdentityUser> UserManager
+
+<h3>Dashboard Admin - Liste des chefs</h3>
+
+<table class="table table-bordered mt-4">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Statut</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var chef in ChefUsers)
+        {
+            <tr>
+                <td>@chef.Email</td>
+
+                <td>
+                    @if (chef.EmailConfirmed)
+                    {
+                        <span class="badge bg-success">Validé</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">En attente</span>
+                    }
+                </td>
+
+                <td>
+                    @if (!chef.EmailConfirmed)
+                    {
+                        <button class="btn btn-success btn-sm me-2" @onclick="() => ValidateChef(chef)">
+                            Valider
+                        </button>
+                    }
+
+                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteChef(chef)">
+                        Supprimer
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<IdentityUser> ChefUsers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChefs();
+    }
+
+    private async Task LoadChefs()
+    {
+        ChefUsers.Clear();
+
+        foreach (var user in UserManager.Users.ToList())
+        {
+            if (await UserManager.IsInRoleAsync(user, "Chef"))
+            {
+                ChefUsers.Add(user);
+            }
+        }
+    }
+
+    private async Task ValidateChef(IdentityUser chef)
+    {
+        chef.EmailConfirmed = true;
+        await UserManager.UpdateAsync(chef);
+        await LoadChefs();
+    }
+
+    private async Task DeleteChef(IdentityUser chef)
+    {
+        await UserManager.DeleteAsync(chef);
+        await LoadChefs();
+    }
+}

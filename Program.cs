@@ -33,25 +33,40 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 builder.Services.AddCascadingAuthenticationState();
 var app = builder.Build();
 
-// Seed admin user and role
+// Seed roles + admin
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-    if (!await roleManager.RoleExistsAsync("Admin"))
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
+    string[] roles = { "Admin", "Chef" };
 
-    if (await userManager.FindByEmailAsync("admin@data.com") == null)
+    foreach (var role in roles)
     {
-        var adminUser = new IdentityUser { UserName = "admin@data.com", Email = "admin@data.com" };
-        var result = await userManager.CreateAsync(adminUser, "Admin123");
+        if (!await roleManager.RoleExistsAsync(role))
+            await roleManager.CreateAsync(new IdentityRole(role));
+    }
+
+    string adminEmail = "admin@data.com";
+    string adminPassword = "Admin123";
+
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+    if (adminUser == null)
+    {
+        adminUser = new IdentityUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(adminUser, adminPassword);
 
         if (result.Succeeded)
             await userManager.AddToRoleAsync(adminUser, "Admin");
     }
 }
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -70,18 +85,30 @@ app.MapRazorComponents<App>()
 
 
 // --- AUTHENTICATION ENDPOINTS (Outside WebSocket) ---
-
 app.MapPost("/api/auth/login", async (
     [FromServices] SignInManager<IdentityUser> signInManager,
-    [FromForm] string email, 
+    [FromServices] UserManager<IdentityUser> userManager,
+    [FromForm] string email,
     [FromForm] string password) =>
 {
-    var result = await signInManager.PasswordSignInAsync(email, password, isPersistent: false, lockoutOnFailure: false);
-    
-    if (result.Succeeded) return Results.Redirect("/dashboard");
-    
-    return Results.Redirect("/login?error=Invalid+credentials");
-}).DisableAntiforgery(); 
+    var user = await userManager.FindByEmailAsync(email);
+
+    if (user == null)
+        return Results.Redirect("/login?error=Invalid+credentials");
+
+    if (await userManager.IsInRoleAsync(user, "Chef") && !user.EmailConfirmed)
+        return Results.Redirect("/login?error=Votre+compte+est+en+attente+de+validation+par+ladmin");
+
+    var result = await signInManager.PasswordSignInAsync(email, password, false, false);
+
+    if (!result.Succeeded)
+        return Results.Redirect("/login?error=Invalid+credentials");
+
+    if (await userManager.IsInRoleAsync(user, "Admin"))
+        return Results.Redirect("/admin/chefs");
+
+    return Results.Redirect("/ingredients/dashboard");
+}).DisableAntiforgery();
 
 app.MapPost("/api/auth/logout", async ([FromServices] SignInManager<IdentityUser> signInManager) =>
 {
