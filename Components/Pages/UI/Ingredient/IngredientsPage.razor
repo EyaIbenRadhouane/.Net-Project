@@ -1,6 +1,7 @@
 ﻿@page "/ingredients"
 @rendermode InteractiveServer
 @using Recette.Services
+@using Recette.Models
 @using IngredientModel = Recette.Models.Ingredient
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
@@ -9,7 +10,8 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>🧂 Liste des Ingrédients</h3>
-      <button class="btn btn-success" @onclick="GoToAdd">
+
+    <button class="btn btn-success" @onclick="GoToAdd">
         <span class="bi bi-plus-circle"></span> Ajouter un ingrédient
     </button>
 </div>
@@ -21,60 +23,124 @@
         Chargement des données...
     </div>
 }
-else if (_ingredients == null || !_ingredients.Any())
-{
-    <div class="alert alert-warning">Aucun ingrédient trouvé.</div>
-}
 else
 {
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>Image</th>
-                <th>Nom</th>
-                <th>Calories / Unité</th>
-                <th>Unité</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var ingredient in _ingredients)
-            {
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Recherche</label>
+                    <input class="form-control"
+                           placeholder="Rechercher par nom, unité ou catégorie..."
+                           @bind="_searchText"
+                           @bind:event="oninput" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Filtrer par catégorie</label>
+                    <select class="form-select" @bind="_selectedCategory">
+                        <option value="">Toutes les catégories</option>
+                        @foreach (var category in Enum.GetValues<IngredientCategory>())
+                        {
+                            <option value="@category">@GetCategoryLabel(category)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                        Effacer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!FilteredIngredients.Any())
+    {
+        <div class="alert alert-warning">
+            Aucun ingrédient trouvé.
+        </div>
+    }
+    else
+    {
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
                 <tr>
-                    <td>
-                        @if (!string.IsNullOrEmpty(ingredient.ImageUrl))
-                        {
-                            <img src="@ingredient.ImageUrl" alt="@ingredient.Name" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
-                        }
-                        else
-                        {
-                            <div style="width: 50px; height: 50px; background-color: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                🧂
-                            </div>
-                        }
-                    </td>
-                    <td>@ingredient.Name</td>
-                    <td>@ingredient.CaloriesPerUnit kcal</td>
-                    <td>@ingredient.Unit</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning me-1"
-                                @onclick="() => GoToEdit(ingredient.Id)">
-                            ✏️ Modifier
-                        </button>
-                        <button class="btn btn-sm btn-danger"
-                                @onclick="() => Delete(ingredient.Id)">
-                            🗑️ Supprimer
-                        </button>
-                    </td>
+                    <th>Image</th>
+                    <th>Nom</th>
+                    <th>Catégorie</th>
+                    <th>Calories / Unité</th>
+                    <th>Unité</th>
+                    <th>Actions</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+
+            <tbody>
+                @foreach (var ingredient in FilteredIngredients)
+                {
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrEmpty(ingredient.ImageUrl))
+                            {
+                                <img src="@ingredient.ImageUrl"
+                                     alt="@ingredient.Name"
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
+                            }
+                            else
+                            {
+                                <div style="width: 50px; height: 50px; background-color: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                    🧂
+                                </div>
+                            }
+                        </td>
+
+                        <td>@ingredient.Name</td>
+
+                        <td>
+                            <span class="badge bg-secondary">
+                                @GetCategoryLabel(ingredient.Category)
+                            </span>
+                        </td>
+
+                        <td>@ingredient.CaloriesPerUnit kcal</td>
+
+                        <td>@ingredient.Unit</td>
+
+                        <td>
+                            <button class="btn btn-sm btn-warning me-1"
+                                    @onclick="() => GoToEdit(ingredient.Id)">
+                                ✏️ Modifier
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="() => Delete(ingredient.Id)">
+                                🗑️ Supprimer
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 @code {
     private List<IngredientModel>? _ingredients;
     private bool _isLoading = true;
+
+    private string _searchText = string.Empty;
+    private IngredientCategory? _selectedCategory;
+
+    private List<IngredientModel> FilteredIngredients =>
+        (_ingredients ?? new List<IngredientModel>())
+            .Where(i =>
+                string.IsNullOrWhiteSpace(_searchText)
+                || i.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || i.Unit.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || GetCategoryLabel(i.Category).Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .Where(i => !_selectedCategory.HasValue || i.Category == _selectedCategory.Value)
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,12 +148,39 @@ else
         _isLoading = false;
     }
 
-    private void GoToAdd() => NavManager.NavigateTo("/ingredients/ajouter");
-    private void GoToEdit(int id) => NavManager.NavigateTo($"/ingredients/modifier/{id}");
+    private void ClearFilters()
+    {
+        _searchText = string.Empty;
+        _selectedCategory = null;
+    }
+
+    private void GoToAdd()
+    {
+        NavManager.NavigateTo("/ingredients/ajouter");
+    }
+
+    private void GoToEdit(int id)
+    {
+        NavManager.NavigateTo($"/ingredients/modifier/{id}");
+    }
 
     private async Task Delete(int id)
     {
         await IngredientService.DeleteIngredientAsync(id);
         _ingredients = await IngredientService.GetIngredientsAsync();
     }
+
+    private string GetCategoryLabel(IngredientCategory category) => category switch
+    {
+        IngredientCategory.Legumes => "Légumes",
+        IngredientCategory.Fruits => "Fruits",
+        IngredientCategory.Proteines => "Protéines",
+        IngredientCategory.Cereales => "Céréales",
+        IngredientCategory.Produits_Laitiers => "Produits laitiers",
+        IngredientCategory.Boissons => "Boissons",
+        IngredientCategory.Huiles => "Huiles",
+        IngredientCategory.Condiments => "Condiments",
+        IngredientCategory.Legumineuses => "Légumineuses",
+        _ => "Autre"
+    };
 }

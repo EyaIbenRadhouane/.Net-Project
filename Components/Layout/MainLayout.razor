@@ -1,9 +1,13 @@
 ﻿@inherits LayoutComponentBase
-
+@inject NavigationManager NavigationManager
 <div class="page">
+    @if (!NavigationManager.Uri.Contains("/login")
+    && !NavigationManager.Uri.Contains("/signup"))
+{
     <div class="sidebar">
         <NavMenu />
     </div>
+}
 
     <main>
         <!-- We replace the content of the top-row -->

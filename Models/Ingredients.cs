@@ -18,7 +18,7 @@ public enum IngredientCategory
     Autre          // Autre
 }
 
-[UniqueNameUnit] // 👈 Attribut au niveau de la classe
+[UniqueNameUnit] //
 public class Ingredient
 {
     public int Id { get; set; }
@@ -57,4 +57,5 @@ public class Ingredient
 
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
     public string? ImageUrl { get; set; }
+    public string? ChefId { get; set; }
 }

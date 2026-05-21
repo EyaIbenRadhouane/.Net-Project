@@ -9,6 +9,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>📖 Liste des Recettes</h3>
+
     <button class="btn btn-success" @onclick="GoToAdd">
         <span class="bi bi-plus-circle"></span> Ajouter une recette
     </button>
@@ -21,96 +22,198 @@
         Chargement des données...
     </div>
 }
-else if (_recipes!.Count == 0)
-{
-    <div class="alert alert-warning">Aucune recette trouvée.</div>
-}
 else
 {
-    <table class="table table-striped table-hover">
-      <thead class="table-dark">
-    <tr>
-        <th>Image</th>
-        <th>Nom</th>
-        <th>Catégorie</th>
-        <th>Cuisine</th>
-        <th>Personnes</th>
-        <th>Calories recette</th>
-        <th>Calories totales</th>
-        <th>Cal / personne</th>
-        <th>Actions</th>
-    </tr>
-</thead>
-<tbody>
-    @foreach (var recipe in _recipes!)
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Recherche</label>
+                    <input class="form-control"
+                           placeholder="Rechercher par nom, catégorie ou cuisine..."
+                           @bind="_searchText"
+                           @bind:event="oninput" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Filtrer par catégorie</label>
+                    <select class="form-select" @bind="_selectedCategory">
+                        <option value="">Toutes les catégories</option>
+                        @foreach (var category in Categories)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Filtrer par cuisine</label>
+                    <select class="form-select" @bind="_selectedCuisine">
+                        <option value="">Toutes les cuisines</option>
+                        @foreach (var cuisine in Cuisines)
+                        {
+                            <option value="@cuisine">@cuisine</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-1 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!FilteredRecipes.Any())
     {
-        <tr>
-            <td>
-                        @if (!string.IsNullOrEmpty(recipe.ImageUrl))
-                        {
-                            <img src="@recipe.ImageUrl" alt="@recipe.Name" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
-                        }
-                        else
-                        {
-                            <div style="width: 50px; height: 50px; background-color: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                🧂
-                            </div>
-                        }
-                    </td>
-            <td>@recipe.Name</td>
-            <td>@recipe.Category</td>
-            <td>@recipe.CuisineType</td>
-            <td>@recipe.NumberOfPersons</td>
-            <td>@recipe.CaloriesRecipe.ToString("F1") kcal</td>
-            <td>@recipe.TotalCalories.ToString("F1") kcal</td>
-            <td>@recipe.CaloriesPerPerson.ToString("F1") kcal</td>
-            <td>
-                <button class="btn btn-sm btn-info me-1"
-                        @onclick="() => GoToDetail(recipe.Id)">
-                    👁️ Détail
-                </button>
-                <button class="btn btn-sm btn-warning me-1"
-                        @onclick="() => GoToEdit(recipe.Id)">
-                    ✏️ Modifier
-                </button>
-                <button class="btn btn-sm btn-danger"
-                        @onclick="() => ConfirmDelete(recipe)">
-                    🗑️ Supprimer
-                </button>
-            </td>
-        </tr>
+        <div class="alert alert-warning">
+            Aucune recette trouvée.
+        </div>
     }
-    
-</tbody>
-    </table>
+    else
+    {
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Image</th>
+                    <th>Nom</th>
+                    <th>Catégorie</th>
+                    <th>Cuisine</th>
+                    <th>Personnes</th>
+                    <th>Calories recette</th>
+                    <th>Calories totales</th>
+                    <th>Cal / personne</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var recipe in FilteredRecipes)
+                {
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrEmpty(recipe.ImageUrl))
+                            {
+                                <img src="@recipe.ImageUrl"
+                                     alt="@recipe.Name"
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />
+                            }
+                            else
+                            {
+                                <div style="width: 50px; height: 50px; background-color: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                    📖
+                                </div>
+                            }
+                        </td>
+
+                        <td>@recipe.Name</td>
+                        <td>@recipe.Category</td>
+                        <td>@recipe.CuisineType</td>
+                        <td>@recipe.NumberOfPersons</td>
+                        <td>@recipe.CaloriesRecipe.ToString("F1") kcal</td>
+                        <td>@recipe.TotalCalories.ToString("F1") kcal</td>
+                        <td>@recipe.CaloriesPerPerson.ToString("F1") kcal</td>
+
+                        <td>
+                            <button class="btn btn-sm btn-info me-1"
+                                    @onclick="() => GoToDetail(recipe.Id)">
+                                👁️ Détail
+                            </button>
+
+                            <button class="btn btn-sm btn-warning me-1"
+                                    @onclick="() => GoToEdit(recipe.Id)">
+                                ✏️ Modifier
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="() => ConfirmDelete(recipe)">
+                                🗑️ Supprimer
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
-@* Modal confirmation suppression *@
 @if (_recipeToDelete != null)
 {
     <div class="modal show d-block" style="background:rgba(0,0,0,0.5)">
         <div class="modal-dialog">
             <div class="modal-content">
+
                 <div class="modal-header">
                     <h5 class="modal-title">Confirmer la suppression</h5>
                 </div>
+
                 <div class="modal-body">
                     Voulez-vous vraiment supprimer la recette
                     <strong>@_recipeToDelete.Name</strong> ?
                 </div>
+
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CancelDelete">Annuler</button>
-                    <button class="btn btn-danger" @onclick="DeleteConfirmed">Supprimer</button>
+                    <button class="btn btn-secondary" @onclick="CancelDelete">
+                        Annuler
+                    </button>
+
+                    <button class="btn btn-danger" @onclick="DeleteConfirmed">
+                        Supprimer
+                    </button>
                 </div>
+
             </div>
         </div>
     </div>
 }
 
 @code {
-    private List<Recipe>? _recipes;
+    private List<Recipe> _recipes = new();
     private bool _isLoading = true;
     private Recipe? _recipeToDelete;
+
+    private string _searchText = string.Empty;
+    private string _selectedCategory = string.Empty;
+    private string _selectedCuisine = string.Empty;
+
+    private List<Recipe> FilteredRecipes =>
+        _recipes
+            .Where(r =>
+                string.IsNullOrWhiteSpace(_searchText)
+                || r.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || r.Category.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || r.CuisineType.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .Where(r =>
+                string.IsNullOrWhiteSpace(_selectedCategory)
+                || r.Category == _selectedCategory)
+            .Where(r =>
+                string.IsNullOrWhiteSpace(_selectedCuisine)
+                || r.CuisineType == _selectedCuisine)
+            .ToList();
+
+    private List<string> Categories => new()
+    {
+        "Entrée",
+        "Plat principal",
+        "Dessert",
+        "Boisson",
+        "Salade",
+        "Snack",
+        "Healthy"
+    };
+
+    private List<string> Cuisines => new()
+    {
+        "Tunisienne",
+        "Italienne",
+        "Française",
+        "Asiatique",
+        "Américaine",
+        "Mexicaine",
+        "Méditerranéenne"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,12 +227,37 @@ else
         _isLoading = false;
     }
 
-    private void GoToAdd() => NavManager.NavigateTo("/recettes/ajouter");
-    private void GoToEdit(int id) => NavManager.NavigateTo($"/recettes/modifier/{id}");
-    private void GoToDetail(int id) => NavManager.NavigateTo($"/recettes/detail/{id}");
+    private void ClearFilters()
+    {
+        _searchText = string.Empty;
+        _selectedCategory = string.Empty;
+        _selectedCuisine = string.Empty;
+    }
 
-    private void ConfirmDelete(Recipe recipe) => _recipeToDelete = recipe;
-    private void CancelDelete() => _recipeToDelete = null;
+    private void GoToAdd()
+    {
+        NavManager.NavigateTo("/recettes/ajouter");
+    }
+
+    private void GoToEdit(int id)
+    {
+        NavManager.NavigateTo($"/recettes/modifier/{id}");
+    }
+
+    private void GoToDetail(int id)
+    {
+        NavManager.NavigateTo($"/recettes/detail/{id}");
+    }
+
+    private void ConfirmDelete(Recipe recipe)
+    {
+        _recipeToDelete = recipe;
+    }
+
+    private void CancelDelete()
+    {
+        _recipeToDelete = null;
+    }
 
     private async Task DeleteConfirmed()
     {

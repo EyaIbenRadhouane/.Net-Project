@@ -33,4 +33,7 @@ public class Recipe
 
     public double CaloriesPerPerson =>
         NumberOfPersons > 0 ? TotalCalories / NumberOfPersons : 0;
+
+
+    public string? ChefId { get; set; }
 }
