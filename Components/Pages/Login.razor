@@ -1,70 +1,62 @@
 @page "/login"
+@layout MainLayout
 
 <div class="container">
     <div class="row justify-content-center align-items-center vh-100">
-
         <div class="col-md-4">
             <div class="card shadow border-0 rounded-4 p-4">
 
                 <div class="text-center mb-4">
-                    <h2 class="fw-bold">🍽️ Recette App</h2>
-                    <p class="text-muted">Connectez-vous à votre espace</p>
+                    <h2 class="fw-bold">Bienvenue, Chef !</h2>
+                    <p class="text-muted">Connectez-vous pour composer votre recette</p>
                 </div>
 
                 @if (!string.IsNullOrEmpty(Error))
                 {
-                    <div class="alert alert-danger">
+                    <div class="alert alert-danger mb-3">
                         @Error
                     </div>
                 }
 
                 <form method="post" action="/api/auth/login" data-enhance="false">
-
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
-
-                        <input type="text"
+                        <label class="form-label fw-medium">Email</label>
+                        <input type="email"
                                name="email"
                                class="form-control"
+                               placeholder="nom@exemple.com"
                                required />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
-
+                        <label class="form-label fw-medium">Mot de passe</label>
                         <input type="password"
                                name="password"
                                class="form-control"
+                               placeholder="••••••"
                                required />
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
-                        Log in
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        Se connecter
                     </button>
-
                 </form>
 
                 <div class="text-center mt-4">
                     <small class="text-muted">
                         Vous n’avez pas de compte ?
                     </small>
-
-                    <br />
-
-                    <a href="/signup" class="text-decoration-none fw-bold">
-                        Créer un compte Chef
+                    <a href="/signup" class="text-decoration-none fw-bold mt-1 d-inline-block">
+                        Créer un compte
                     </a>
                 </div>
 
             </div>
         </div>
-
     </div>
 </div>
 
 @code {
-
     [SupplyParameterFromQuery]
     public string? Error { get; set; }
-
 }
