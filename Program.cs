@@ -11,14 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddRadzenComponents();
+
 // Injection du DbContext avec SQLite
 // On lit la chaîne de connexion depuis le fichier JSON
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionString));
-//Services métiers
+
+// Services métiers
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
+
 // Identity services
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
@@ -67,13 +70,14 @@ using (var scope = app.Services.CreateScope())
             await userManager.AddToRoleAsync(adminUser, "Admin");
     }
 }
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
@@ -99,7 +103,8 @@ app.MapPost("/api/auth/login", async (
     if (await userManager.IsInRoleAsync(user, "Chef") && !user.EmailConfirmed)
         return Results.Redirect("/login?error=Votre+compte+est+en+attente+de+validation+par+ladmin");
 
-    var result = await signInManager.PasswordSignInAsync(email, password, false, false);
+    // CORRECTION : Utilisation de user.UserName à la place de l'email
+    var result = await signInManager.PasswordSignInAsync(user.UserName!, password, false, false);
 
     if (!result.Succeeded)
         return Results.Redirect("/login?error=Invalid+credentials");
@@ -116,5 +121,4 @@ app.MapPost("/api/auth/logout", async ([FromServices] SignInManager<IdentityUser
     return Results.Redirect("/");
 }).DisableAntiforgery();
 
-app.Run(); // This line must always be the last in the file!
-
+app.Run();
