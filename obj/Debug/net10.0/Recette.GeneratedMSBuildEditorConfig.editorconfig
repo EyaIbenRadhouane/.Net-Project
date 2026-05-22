@@ -75,8 +75,8 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVSVxJbmdyZWRpZW50XEluZ3JlZGllbnRFZGl0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/achref/Downloads/Recette/Recette/Components/Pages/UI/Ingredient/IngredientsPage.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVSVxJbmdyZWRpZW50XEluZ3JlZGllbnRzUGFnZS5yYXpvcg==
+[C:/Users/achref/Downloads/Recette/Recette/Components/Pages/UI/Ingredient/Ingredients.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVSVxJbmdyZWRpZW50XEluZ3JlZGllbnRzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/achref/Downloads/Recette/Recette/Components/Pages/UI/Recipe/AddRecipe.razor]

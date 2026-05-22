@@ -134,6 +134,7 @@ else
 
     private string _searchText = string.Empty;
     private IngredientCategory? _selectedCategory;
+    private string? _currentUserId;
 
     private List<IngredientModel> FilteredIngredients =>
         (_ingredients ?? new List<IngredientModel>())
@@ -148,13 +149,20 @@ else
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        _ingredients = (await IngredientService.GetIngredientsAsync())
-            .Where(i => i.ChefId == userId)
-            .ToList();
+        await RefreshListAsync();
         _isLoading = false;
+    }
+
+    private async Task RefreshListAsync()
+    {
+        if (!string.IsNullOrEmpty(_currentUserId))
+        {
+            _ingredients = (await IngredientService.GetIngredientsAsync())
+                .Where(i => i.ChefId == _currentUserId)
+                .ToList();
+        }
     }
 
     private void ClearFilters()
@@ -176,7 +184,7 @@ else
     private async Task Delete(int id)
     {
         await IngredientService.DeleteIngredientAsync(id);
-        _ingredients = await IngredientService.GetIngredientsAsync();
+        await RefreshListAsync();
     }
 
     private string GetCategoryLabel(IngredientCategory category) => category switch

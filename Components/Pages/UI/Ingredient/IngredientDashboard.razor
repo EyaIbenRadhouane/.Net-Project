@@ -4,11 +4,14 @@
 @using Recette.Models
 @using Radzen.Blazor
 @using IngredientModel = Recette.Models.Ingredient
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
 
-
 <PageTitle>Dashboard Ingrédients</PageTitle>
+
 @if (_isLoading)
 {
     <div class="alert alert-info">
@@ -18,9 +21,7 @@
 }
 else
 {
-    <!-- KPI -->
     <div class="row g-3 mb-4">
-
         <div class="col-md-3">
             <div class="card text-white bg-primary">
                 <div class="card-body d-flex justify-content-between align-items-center">
@@ -28,8 +29,6 @@ else
                         <div class="fs-2 fw-bold">@(_filteredIngredients?.Count ?? 0)</div>
                         <div>Total ingrédients</div>
                     </div>
-
-                    <span class="fs-1">🧂</span>
                 </div>
             </div>
         </div>
@@ -41,8 +40,6 @@ else
                         <div class="fs-2 fw-bold">@_avgCalories.ToString("F0")</div>
                         <div>Moy. kcal/unité</div>
                     </div>
-
-                    <span class="fs-1">🔥</span>
                 </div>
             </div>
         </div>
@@ -54,8 +51,6 @@ else
                         <div class="fs-2 fw-bold">@_minCalories.ToString("F0")</div>
                         <div>Min kcal/unité</div>
                     </div>
-
-                    <span class="fs-1">⬇️</span>
                 </div>
             </div>
         </div>
@@ -67,223 +62,141 @@ else
                         <div class="fs-2 fw-bold">@_maxCalories.ToString("F0")</div>
                         <div>Max kcal/unité</div>
                     </div>
-
-                    <span class="fs-1">⬆️</span>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Graphiques -->
-    <div class="row g-3 mb-4">
-
-        <!-- Pie -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        📈 Répartition par Catégorie
-                    </h5>
+    @if (_filteredIngredients?.Any() == true)
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">📈 Répartition par Catégorie</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (_categoryData?.Any() == true)
+                        {
+                            <RadzenChart>
+                                <RadzenPieSeries Data="@_categoryData" CategoryProperty="Category" ValueProperty="Count">
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenPieSeries>
+                                <RadzenChartTooltip />
+                            </RadzenChart>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">Aucune donnée disponible</div>
+                        }
+                    </div>
                 </div>
+            </div>
 
-                <div class="card-body">
-
-                    @if (_categoryData?.Any() == true)
-                    {
-                        <RadzenChart>
-
-                            <RadzenPieSeries Data="@_categoryData"
-                                             CategoryProperty="Category"
-                                             ValueProperty="Count">
-
-                                <RadzenSeriesDataLabels Visible="true" />
-
-                            </RadzenPieSeries>
-
-                            <RadzenChartTooltip />
-
-                        </RadzenChart>
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            Aucune donnée disponible
-                        </div>
-                    }
-
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Top 10 Ingrédients (Calories)</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (_topCalories?.Any() == true)
+                        {
+                            <RadzenChart>
+                                <RadzenBarSeries Data="@_topCalories" CategoryProperty="Name" ValueProperty="CaloriesPerUnit">
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenBarSeries>
+                                <RadzenChartTooltip />
+                                <RadzenCategoryAxis />
+                                <RadzenValueAxis Min="0" Max="@(_topCalories.Any() ? _topCalories.Max(x => x.CaloriesPerUnit) * 1.1 : 100)">
+                                    <RadzenAxisTitle Text="kcal/unité" />
+                                </RadzenValueAxis>
+                            </RadzenChart>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">Aucune donnée disponible</div>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Top Calories -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        🔥 Top 10 Ingrédients (Calories)
-                    </h5>
-                </div>
-
-                <div class="card-body">
-
-                    @if (_topCalories?.Any() == true)
-                    {
-                        <RadzenChart>
-
-                            <RadzenBarSeries Data="@_topCalories"
-                                             CategoryProperty="Name"
-                                             ValueProperty="CaloriesPerUnit">
-
-                                <RadzenSeriesDataLabels Visible="true" />
-
-                            </RadzenBarSeries>
-
-                            <RadzenChartTooltip />
-
-                            <RadzenCategoryAxis />
-
-                            <RadzenValueAxis Min="0"
-                                             Max="@(_topCalories.Any() ? _topCalories.Max(x => x.CaloriesPerUnit) * 1.1 : 100)">
-                                <RadzenAxisTitle Text="kcal/unité" />
-                            </RadzenValueAxis>
-
-                        </RadzenChart>
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            Aucune donnée disponible
-                        </div>
-                    }
-
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">📊 Distribution des Calories</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (_calorieDistribution?.Any() == true)
+                        {
+                            <RadzenChart>
+                                <RadzenBarSeries Data="@_calorieDistribution" CategoryProperty="Range" ValueProperty="Count">
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenBarSeries>
+                                <RadzenChartTooltip />
+                                <RadzenCategoryAxis />
+                                <RadzenValueAxis Min="0">
+                                    <RadzenAxisTitle Text="Nombre d'ingrédients" />
+                                </RadzenValueAxis>
+                            </RadzenChart>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">Aucune donnée disponible</div>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
 
-    </div>
-
-    <!-- Distribution + Nutrition -->
-    <div class="row g-3 mb-4">
-
-        <!-- Distribution -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">
-                        📊 Distribution des Calories
-                    </h5>
-                </div>
-
-                <div class="card-body">
-
-                    @if (_calorieDistribution?.Any() == true)
-                    {
-                        <RadzenChart>
-
-                            <RadzenBarSeries Data="@_calorieDistribution"
-                                             CategoryProperty="Range"
-                                             ValueProperty="Count">
-
-                                <RadzenSeriesDataLabels Visible="true" />
-
-                            </RadzenBarSeries>
-
-                            <RadzenChartTooltip />
-
-                            <RadzenCategoryAxis />
-
-                            <RadzenValueAxis Min="0">
-                                <RadzenAxisTitle Text="Nombre d'ingrédients" />
-                            </RadzenValueAxis>
-
-                        </RadzenChart>
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            Aucune donnée disponible
-                        </div>
-                    }
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Nutrition -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        🥗 Résumé Nutritionnel
-                    </h5>
-                </div>
-
-                <div class="card-body">
-
-                    @if (_filteredIngredients?.Any() == true)
-                    {
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">🥗 Résumé Nutritionnel (Moyenne)</h5>
+                    </div>
+                    <div class="card-body">
                         <div class="row g-2">
-
                             <div class="col-md-6">
                                 <div class="p-2 bg-light rounded">
                                     <small class="text-muted">Avg. Protéines</small>
-                                    <div class="fs-4 fw-bold">
-                                        @_avgProteins.ToString("F1")g
-                                    </div>
+                                    <div class="fs-4 fw-bold">@_avgProteins.ToString("F1")g</div>
                                 </div>
                             </div>
-
                             <div class="col-md-6">
                                 <div class="p-2 bg-light rounded">
                                     <small class="text-muted">Avg. Glucides</small>
-                                    <div class="fs-4 fw-bold">
-                                        @_avgCarbs.ToString("F1")g
-                                    </div>
+                                    <div class="fs-4 fw-bold">@_avgCarbs.ToString("F1")g</div>
                                 </div>
                             </div>
-
                             <div class="col-md-6">
                                 <div class="p-2 bg-light rounded">
                                     <small class="text-muted">Avg. Lipides</small>
-                                    <div class="fs-4 fw-bold">
-                                        @_avgLipids.ToString("F1")g
-                                    </div>
+                                    <div class="fs-4 fw-bold">@_avgLipids.ToString("F1")g</div>
                                 </div>
                             </div>
-
                             <div class="col-md-6">
                                 <div class="p-2 bg-light rounded">
                                     <small class="text-muted">Avg. Fibres</small>
-                                    <div class="fs-4 fw-bold">
-                                        @_avgFiber.ToString("F1")g
-                                    </div>
+                                    <div class="fs-4 fw-bold">@_avgFiber.ToString("F1")g</div>
                                 </div>
                             </div>
-
                         </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            Aucune donnée disponible
-                        </div>
-                    }
-
+                    </div>
                 </div>
             </div>
         </div>
-
-    </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            📌 Vous n'avez pas encore configuré d'ingrédients. Les graphiques s'afficheront après vos ajouts.
+        </div>
+    }
 }
 
 @code {
-
     private List<IngredientModel>? _allIngredients;
     private List<IngredientModel>? _filteredIngredients;
-
     private bool _isLoading = true;
 
     private double _avgCalories = 0;
@@ -307,31 +220,31 @@ else
     private async Task LoadDataAsync()
     {
         _isLoading = true;
-
         StateHasChanged();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         _allIngredients = await IngredientService.GetIngredientsAsync();
 
-        _filteredIngredients = _allIngredients?.ToList() ?? new();
+        _filteredIngredients = _allIngredients?
+            .Where(i => i.ChefId == userId)
+            .ToList() ?? new List<IngredientModel>();
 
-        CalculateStatistics();
-        CalculateChartData();
-        CalculateNutritionAverage();
+        if (_filteredIngredients.Any())
+        {
+            CalculateStatistics();
+            CalculateChartData();
+            CalculateNutritionAverage();
+        }
 
         _isLoading = false;
-
         StateHasChanged();
     }
 
     private void CalculateStatistics()
     {
-        if (_filteredIngredients?.Any() != true)
-        {
-            _avgCalories = 0;
-            _minCalories = 0;
-            _maxCalories = 0;
-            return;
-        }
+        if (_filteredIngredients?.Any() != true) return;
 
         _avgCalories = _filteredIngredients.Average(i => i.CaloriesPerUnit);
         _minCalories = _filteredIngredients.Min(i => i.CaloriesPerUnit);
@@ -340,16 +253,11 @@ else
 
     private void CalculateChartData()
     {
-        if (_filteredIngredients == null || !_filteredIngredients.Any())
-            return;
+        if (_filteredIngredients == null || !_filteredIngredients.Any()) return;
 
         _categoryData = _filteredIngredients
             .GroupBy(i => GetCategoryLabel(i.Category))
-            .Select(g => new CategoryData
-            {
-                Category = g.Key,
-                Count = g.Count()
-            })
+            .Select(g => new CategoryData { Category = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToList();
 
@@ -370,34 +278,18 @@ else
 
     private void CalculateNutritionAverage()
     {
-        if (_filteredIngredients == null || !_filteredIngredients.Any())
-            return;
+        if (_filteredIngredients == null || !_filteredIngredients.Any()) return;
 
         var withNutrition = _filteredIngredients
-            .Where(i =>
-                i.Proteins.HasValue ||
-                i.Carbohydrates.HasValue ||
-                i.Lipids.HasValue ||
-                i.Fiber.HasValue)
+            .Where(i => i.Proteins.HasValue || i.Carbohydrates.HasValue || i.Lipids.HasValue || i.Fiber.HasValue)
             .ToList();
 
         if (withNutrition.Any())
         {
-            _avgProteins = withNutrition
-                .Where(i => i.Proteins.HasValue)
-                .Average(i => i.Proteins ?? 0);
-
-            _avgCarbs = withNutrition
-                .Where(i => i.Carbohydrates.HasValue)
-                .Average(i => i.Carbohydrates ?? 0);
-
-            _avgLipids = withNutrition
-                .Where(i => i.Lipids.HasValue)
-                .Average(i => i.Lipids ?? 0);
-
-            _avgFiber = withNutrition
-                .Where(i => i.Fiber.HasValue)
-                .Average(i => i.Fiber ?? 0);
+            _avgProteins = withNutrition.Where(i => i.Proteins.HasValue).Average(i => i.Proteins ?? 0);
+            _avgCarbs = withNutrition.Where(i => i.Carbohydrates.HasValue).Average(i => i.Carbohydrates ?? 0);
+            _avgLipids = withNutrition.Where(i => i.Lipids.HasValue).Average(i => i.Lipids ?? 0);
+            _avgFiber = withNutrition.Where(i => i.Fiber.HasValue).Average(i => i.Fiber ?? 0);
         }
     }
 
@@ -414,11 +306,6 @@ else
         IngredientCategory.Legumineuses => "Légumineuses",
         _ => "Autre"
     };
-
-    private void GoToAdd()
-    {
-        NavManager.NavigateTo("/ingredients/ajouter");
-    }
 
     public class CategoryData
     {

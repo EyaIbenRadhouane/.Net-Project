@@ -2,10 +2,12 @@
 @rendermode InteractiveServer
 @using Recette.Services
 @using Recette.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IIngredientService IngredientService
 @inject NavigationManager NavManager
 @inject IWebHostEnvironment Env
-
 
 <PageTitle>Modifier l'Ingrédient</PageTitle>
 
@@ -19,7 +21,7 @@
 }
 else if (_ingredient == null)
 {
-    <div class="alert alert-danger">Ingrédient introuvable.</div>
+    <div class="alert alert-danger">Ingrédient introuvable ou accès refusé.</div>
 }
 else
 {
@@ -29,7 +31,6 @@ else
                 <DataAnnotationsValidator />
                 <ValidationSummary class="alert alert-danger" />
                 
-                <!-- Image Preview -->
                 <div class="mb-3 text-center">
                     @if (!string.IsNullOrEmpty(_ingredient.ImageUrl))
                     {
@@ -41,13 +42,11 @@ else
                     }
                 </div>
                 
-                <!-- Image Upload -->
                 <div class="mb-3">
-                    <label class="form-label font-weight-bold">Changer l'image</label>
+                    <label class="form-label fw-bold">Changer l'image</label>
                     <InputFile OnChange="UploadFile" class="form-control" accept=".jpg,.jpeg,.png" />
                 </div>
 
-                <!-- Basic Info -->
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nom</label>
@@ -58,7 +57,6 @@ else
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Catégorie</label>
                         <InputSelect class="form-select" @bind-Value="_ingredient.Category">
-                            <option value="@IngredientCategory.Autre">-- Choisir --</option>
                             <option value="@IngredientCategory.Legumes">Légumes</option>
                             <option value="@IngredientCategory.Fruits">Fruits</option>
                             <option value="@IngredientCategory.Proteines">Protéines</option>
@@ -74,7 +72,6 @@ else
                     </div>
                 </div>
 
-                <!-- Calories & Unit -->
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Calories par unité</label>
@@ -85,7 +82,6 @@ else
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Unité de mesure</label>
                         <InputSelect class="form-select" @bind-Value="_ingredient.Unit">
-                            <option value="">-- Choisir --</option>
                             <option>g</option>
                             <option>kg</option>
                             <option>ml</option>
@@ -99,47 +95,36 @@ else
                     </div>
                 </div>
 
-                <!-- Nutritional Values -->
                 <fieldset class="border p-3 mb-3 rounded" style="background-color: #f9f9f9;">
                     <legend class="w-auto px-2">🥗 Valeurs nutritionnelles (optionnelles)</legend>
-                    
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Protéines (g)</label>
-                            <InputNumber class="form-control" @bind-Value="_ingredient.Proteins" placeholder="Ex: 10" />
-                            <ValidationMessage For="() => _ingredient.Proteins" />
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Proteins" />
                         </div>
-
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Glucides (g)</label>
-                            <InputNumber class="form-control" @bind-Value="_ingredient.Carbohydrates" placeholder="Ex: 20" />
-                            <ValidationMessage For="() => _ingredient.Carbohydrates" />
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Carbohydrates" />
                         </div>
-
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Lipides (g)</label>
-                            <InputNumber class="form-control" @bind-Value="_ingredient.Lipids" placeholder="Ex: 5" />
-                            <ValidationMessage For="() => _ingredient.Lipids" />
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Lipids" />
                         </div>
                     </div>
-
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Fibres (g)</label>
-                            <InputNumber class="form-control" @bind-Value="_ingredient.Fiber" placeholder="Ex: 3" />
-                            <ValidationMessage For="() => _ingredient.Fiber" />
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Fiber" />
                         </div>
-
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Sucres (g)</label>
-                            <InputNumber class="form-control" @bind-Value="_ingredient.Sugar" placeholder="Ex: 5" />
-                            <ValidationMessage For="() => _ingredient.Sugar" />
+                            <InputNumber class="form-control" @bind-Value="_ingredient.Sugar" />
                         </div>
                     </div>
                 </fieldset>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-warning">💾 Mettre à jour</button>
+                    <button type="submit" class="btn btn-primary">💾 Enregistrer les modifications</button>
                     <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
                 </div>
             </EditForm>
@@ -149,38 +134,48 @@ else
 
 @code {
     [Parameter] public int Id { get; set; }
-
     private Ingredient? _ingredient;
     private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        _isLoading = true;
         _ingredient = await IngredientService.GetIngredientByIdAsync(Id);
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (_ingredient != null && _ingredient.ChefId != userId)
+        {
+            NavManager.NavigateTo("/ingredients");
+            return;
+        }
+
         _isLoading = false;
     }
 
     private async Task HandleSubmit()
     {
-        await IngredientService.UpdateIngredientAsync(_ingredient!);
-        NavManager.NavigateTo("/ingredients");
+        if (_ingredient != null)
+        {
+            await IngredientService.UpdateIngredientAsync(_ingredient);
+            NavManager.NavigateTo("/ingredients");
+        }
     }
 
     private async Task UploadFile(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        if (file != null)
+        if (file != null && _ingredient != null)
         {
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.Name);
-            var folderPath = Path.Combine(Env.WebRootPath, "images");
-            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+            var fileName = $"{Guid.NewGuid()}_{file.Name}";
+            var path = Path.Combine(Env.WebRootPath, "images", fileName);
             
-            var path = Path.Combine(folderPath, fileName);
-
             using var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5);
             using var fileStream = new FileStream(path, FileMode.Create);
             await stream.CopyToAsync(fileStream);
 
-            _ingredient!.ImageUrl = $"/images/{fileName}";
+            _ingredient.ImageUrl = $"/images/{fileName}";
         }
     }
 
