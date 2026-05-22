@@ -29,6 +29,7 @@ public class RecipeService : IRecipeService
                 .ThenInclude(ri => ri.Ingredient)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
+
     public async Task AddRecipeAsync(Recipe recipe)
     {
         _context.Recipes.Add(recipe);
@@ -37,7 +38,48 @@ public class RecipeService : IRecipeService
 
     public async Task UpdateRecipeAsync(Recipe recipe)
     {
-        _context.Recipes.Update(recipe);
+        var existingRecipe = await _context.Recipes
+            .Include(r => r.RecipeIngredients)
+            .FirstOrDefaultAsync(r => r.Id == recipe.Id);
+
+        if (existingRecipe == null)
+        {
+            throw new KeyNotFoundException("La recette à modifier n'existe pas.");
+        }
+
+        // Mise à jour des propriétés principales
+        _context.Entry(existingRecipe).CurrentValues.SetValues(recipe);
+
+        // Synchronisation propre des ingrédients de la recette
+        // 1. Supprimer les ingrédients qui ne sont plus dans la liste modifiée
+        foreach (var existingIngredient in existingRecipe.RecipeIngredients.ToList())
+        {
+            if (!recipe.RecipeIngredients.Any(ri => ri.IngredientId == existingIngredient.IngredientId))
+            {
+                _context.Remove(existingIngredient);
+            }
+        }
+
+        // 2. Ajouter ou mettre à jour les ingrédients restants/nouveaux
+        foreach (var ri in recipe.RecipeIngredients)
+        {
+            var existingIngredient = existingRecipe.RecipeIngredients
+                .FirstOrDefault(e => e.IngredientId == ri.IngredientId);
+
+            if (existingIngredient == null)
+            {
+                existingRecipe.RecipeIngredients.Add(new RecipeIngredient
+                {
+                    IngredientId = ri.IngredientId,
+                    Quantity = ri.Quantity
+                });
+            }
+            else
+            {
+                existingIngredient.Quantity = ri.Quantity;
+            }
+        }
+
         await _context.SaveChangesAsync();
     }
 

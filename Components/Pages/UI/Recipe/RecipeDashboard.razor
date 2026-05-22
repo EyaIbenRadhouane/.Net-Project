@@ -3,8 +3,10 @@
 @using Recette.Services
 @using Recette.Models
 @using Radzen.Blazor
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inject IRecipeService RecipeService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Dashboard Analytique – Recettes</PageTitle>
 
@@ -68,108 +70,117 @@ else
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header fw-bold">🥗 Répartition par Catégorie</div>
-                <div class="card-body">
-                    <RadzenChart>
-                        <RadzenPieSeries Data="@_categoryData"
-                                         Title="Recettes"
-                                         CategoryProperty="Category"
-                                         ValueProperty="Count"
-                                         TItem="CategoryStat">
-                            <TooltipTemplate Context="item">
-                                <div>
-                                    <strong>@item.Category</strong><br />
-                                    @item.Count recette(s)<br />
-                                    Moy. @item.AvgCaloriesPerPerson.ToString("F0") kcal/pers
-                                </div>
-                            </TooltipTemplate>
-                        </RadzenPieSeries>
-                        <RadzenLegend Position="LegendPosition.Bottom" />
-                    </RadzenChart>
+    @if (_recipes.Any())
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold">🥗 Répartition par Catégorie</div>
+                    <div class="card-body">
+                        <RadzenChart>
+                            <RadzenPieSeries Data="@_categoryData"
+                                             Title="Recettes"
+                                             CategoryProperty="Category"
+                                             ValueProperty="Count"
+                                             TItem="CategoryStat">
+                                <TooltipTemplate Context="item">
+                                    <div>
+                                        <strong>@item.Category</strong><br />
+                                        @item.Count recette(s)<br />
+                                        Moy. @item.AvgCaloriesPerPerson.ToString("F0") kcal/pers
+                                    </div>
+                                </TooltipTemplate>
+                            </RadzenPieSeries>
+                            <RadzenLegend Position="LegendPosition.Bottom" />
+                        </RadzenChart>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold">🌍 Répartition par Cuisine</div>
+                    <div class="card-body">
+                        <RadzenChart>
+                            <RadzenDonutSeries Data="@_cuisineData"
+                                               Title="Cuisines"
+                                               CategoryProperty="CuisineType"
+                                               ValueProperty="Count"
+                                               TItem="CuisineStat">
+                                <TooltipTemplate Context="item">
+                                    <div>
+                                        <strong>@item.CuisineType</strong><br />
+                                        @item.Count recette(s)
+                                    </div>
+                                </TooltipTemplate>
+                            </RadzenDonutSeries>
+                            <RadzenLegend Position="LegendPosition.Bottom" />
+                        </RadzenChart>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header fw-bold">⚡ Jauge Calorique Moyenne</div>
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <RadzenRadialGauge Style="width:100%;max-width:280px;height:200px">
+                            <RadzenRadialGaugeScale Min="0"
+                                                    Max="@_maxCaloriesPerPerson"
+                                                    Step="@(_maxCaloriesPerPerson / 5)"
+                                                    TickPosition="GaugeTickPosition.Outside"
+                                                    MinorStep="@(_maxCaloriesPerPerson / 20)">
+                                <RadzenRadialGaugeScaleRange From="0"
+                                                             To="@(_maxCaloriesPerPerson * 0.33)"
+                                                             Fill="green" />
+
+                                <RadzenRadialGaugeScaleRange From="@(_maxCaloriesPerPerson * 0.33)"
+                                                             To="@(_maxCaloriesPerPerson * 0.66)"
+                                                             Fill="orange" />
+
+                                <RadzenRadialGaugeScaleRange From="@(_maxCaloriesPerPerson * 0.66)"
+                                                             To="@_maxCaloriesPerPerson"
+                                                             Fill="red" />
+
+                                <RadzenRadialGaugeScalePointer Value="@_avgCaloriesPerPerson"
+                                                               ShowValue="true"
+                                                               Length="0.6" />
+                            </RadzenRadialGaugeScale>
+                        </RadzenRadialGauge>
+
+                        <p class="text-muted mt-2 text-center">
+                            Moyenne : <strong>@_avgCaloriesPerPerson.ToString("F0") kcal</strong> / personne
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header fw-bold">🌍 Répartition par Cuisine</div>
-                <div class="card-body">
-                    <RadzenChart>
-                        <RadzenDonutSeries Data="@_cuisineData"
-                                           Title="Cuisines"
-                                           CategoryProperty="CuisineType"
-                                           ValueProperty="Count"
-                                           TItem="CuisineStat">
-                            <TooltipTemplate Context="item">
-                                <div>
-                                    <strong>@item.CuisineType</strong><br />
-                                    @item.Count recette(s)
-                                </div>
-                            </TooltipTemplate>
-                        </RadzenDonutSeries>
-                        <RadzenLegend Position="LegendPosition.Bottom" />
-                    </RadzenChart>
-                </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-bold">🔥 Calories moyennes par catégorie</div>
+            <div class="card-body">
+                <RadzenChart Style="height:220px">
+                    <RadzenColumnSeries Data="@_categoryData"
+                                        Title="Moy. kcal/pers"
+                                        CategoryProperty="Category"
+                                        ValueProperty="AvgCaloriesPerPerson"
+                                        TItem="CategoryStat"
+                                        Fill="#e74c3c" />
+                    <RadzenCategoryAxis Padding="20" />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+                    <RadzenLegend Visible="false" />
+                </RadzenChart>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header fw-bold">⚡ Jauge Calorique Moyenne</div>
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <RadzenRadialGauge Style="width:100%;max-width:280px;height:200px">
-                        <RadzenRadialGaugeScale Min="0"
-                                               Max="@_maxCaloriesPerPerson"
-                                               Step="@(_maxCaloriesPerPerson / 5)"
-                                               TickPosition="GaugeTickPosition.Outside"
-                                               MinorStep="@(_maxCaloriesPerPerson / 20)">
-                            <RadzenRadialGaugeScaleRange From="0"
-                                                         To="@(_maxCaloriesPerPerson * 0.33)"
-                                                         Fill="green" />
-
-                            <RadzenRadialGaugeScaleRange From="@(_maxCaloriesPerPerson * 0.33)"
-                                                         To="@(_maxCaloriesPerPerson * 0.66)"
-                                                         Fill="orange" />
-
-                            <RadzenRadialGaugeScaleRange From="@(_maxCaloriesPerPerson * 0.66)"
-                                                         To="@_maxCaloriesPerPerson"
-                                                         Fill="red" />
-
-                            <RadzenRadialGaugeScalePointer Value="@_avgCaloriesPerPerson"
-                                                           ShowValue="true"
-                                                           Length="0.6" />
-                        </RadzenRadialGaugeScale>
-                    </RadzenRadialGauge>
-
-                    <p class="text-muted mt-2 text-center">
-                        Moyenne : <strong>@_avgCaloriesPerPerson.ToString("F0") kcal</strong> / personne
-                    </p>
-                </div>
-            </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center fs-5 py-4 shadow-sm">
+            👋 Bienvenue <strong>eya@gmail.com</strong> ! Votre tableau de bord est vide car vous n'avez pas encore ajouté de recettes.
         </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header fw-bold">🔥 Calories moyennes par catégorie</div>
-        <div class="card-body">
-            <RadzenChart Style="height:220px">
-                <RadzenColumnSeries Data="@_categoryData"
-                                    Title="Moy. kcal/pers"
-                                    CategoryProperty="Category"
-                                    ValueProperty="AvgCaloriesPerPerson"
-                                    TItem="CategoryStat"
-                                    Fill="#e74c3c" />
-                <RadzenCategoryAxis Padding="20" />
-                <RadzenValueAxis>
-                    <RadzenGridLines Visible="true" />
-                </RadzenValueAxis>
-                <RadzenLegend Visible="false" />
-            </RadzenChart>
-        </div>
-    </div>
+    }
 }
 
 @code {
@@ -196,18 +207,38 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _recipes = await RecipeService.GetRecipesAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            // Récupération du Claim unique de l'utilisateur (généralement NameIdentifier ou Name pour l'ID/Email)
+            var chefId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                         ?? user.Identity.Name;
+
+            if (!string.IsNullOrEmpty(chefId))
+            {
+                // IMPORTANT : Vous devez adapter GetRecipesAsync() dans votre Service pour accepter un ChefId en paramètre
+                // Exemple : _recipes = await RecipeService.GetRecipesByChefAsync(chefId);
+                
+                var allRecipes = await RecipeService.GetRecipesAsync();
+                _recipes = allRecipes.Where(r => r.ChefId == chefId).ToList();
+            }
+        }
+
         BuildAggregations();
         _isLoading = false;
     }
 
     private void BuildAggregations()
     {
+        if (!_recipes.Any()) return;
+
         _categoryData = _recipes
             .GroupBy(r => r.Category)
             .Select(g => new CategoryStat
             {
-                Category = g.Key,
+                Category = g.Key ?? "Non défini",
                 Count = g.Count(),
                 AvgCaloriesPerPerson = g.Average(r => r.CaloriesPerPerson)
             })
@@ -218,18 +249,13 @@ else
             .GroupBy(r => r.CuisineType)
             .Select(g => new CuisineStat
             {
-                CuisineType = g.Key,
+                CuisineType = g.Key ?? "Non défini",
                 Count = g.Count()
             })
             .OrderByDescending(c => c.Count)
             .ToList();
 
-        _avgCaloriesPerPerson = _recipes.Any()
-            ? _recipes.Average(r => r.CaloriesPerPerson)
-            : 0;
-
-        _maxCaloriesPerPerson = _recipes.Any()
-            ? Math.Max(_recipes.Max(r => r.CaloriesPerPerson), 800)
-            : 800;
+        _avgCaloriesPerPerson = _recipes.Average(r => r.CaloriesPerPerson);
+        _maxCaloriesPerPerson = Math.Max(_recipes.Max(r => r.CaloriesPerPerson), 800);
     }
 }

@@ -181,13 +181,14 @@ else
     private string _selectedCategory = string.Empty;
     private string _selectedCuisine = string.Empty;
 
+    // Ajout de vérifications de valeurs nulles (?.) pour éviter les exceptions d'exécution
     private List<Recipe> FilteredRecipes =>
         _recipes
             .Where(r =>
                 string.IsNullOrWhiteSpace(_searchText)
-                || r.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
-                || r.Category.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
-                || r.CuisineType.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+                || (r.Name != null && r.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+                || (r.Category != null && r.Category.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+                || (r.CuisineType != null && r.CuisineType.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
             .Where(r =>
                 string.IsNullOrWhiteSpace(_selectedCategory)
                 || r.Category == _selectedCategory)
@@ -227,12 +228,11 @@ else
     {
         _isLoading = true;
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-_recipes = (await RecipeService.GetRecipesAsync())
-    .Where(r => r.ChefId == userId)
-    .ToList();
+        _recipes = (await RecipeService.GetRecipesAsync())
+            .Where(r => r.ChefId == userId)
+            .ToList();
         _isLoading = false;
     }
 
@@ -243,30 +243,12 @@ _recipes = (await RecipeService.GetRecipesAsync())
         _selectedCuisine = string.Empty;
     }
 
-    private void GoToAdd()
-    {
-        NavManager.NavigateTo("/recettes/ajouter");
-    }
+    private void GoToAdd() => NavManager.NavigateTo("/recettes/ajouter");
+    private void GoToEdit(int id) => NavManager.NavigateTo($"/recettes/modifier/{id}");
+    private void GoToDetail(int id) => NavManager.NavigateTo($"/recettes/detail/{id}");
 
-    private void GoToEdit(int id)
-    {
-        NavManager.NavigateTo($"/recettes/modifier/{id}");
-    }
-
-    private void GoToDetail(int id)
-    {
-        NavManager.NavigateTo($"/recettes/detail/{id}");
-    }
-
-    private void ConfirmDelete(Recipe recipe)
-    {
-        _recipeToDelete = recipe;
-    }
-
-    private void CancelDelete()
-    {
-        _recipeToDelete = null;
-    }
+    private void ConfirmDelete(Recipe recipe) => _recipeToDelete = recipe;
+    private void CancelDelete() => _recipeToDelete = null;
 
     private async Task DeleteConfirmed()
     {
