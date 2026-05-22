@@ -1,41 +1,36 @@
-﻿<nav class="nav flex-column">
+﻿@inherits LayoutComponentBase
+@inject NavigationManager NavManager
 
-    <AuthorizeView Roles="Chef">
-        <Authorized>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="recettes/dashboard">
-                    <span class="bi bi-bar-chart-fill"></span> Stat recettes
-                </NavLink>
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        @if (!IsAuthPage())
+        {
+            <div class="top-row px-4 border-bottom d-flex justify-content-end align-items-center">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bi bi-person-fill text-secondary"></span>
+                            <span class="fw-medium">@context.User.Identity?.Name</span>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
             </div>
+        }
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="recettes">
-                    <span class="bi bi-journal-richtext"></span> Liste recettes
-                </NavLink>
-            </div>
+        <article class="content px-4 py-4">
+            @Body
+        </article>
+    </main>
+</div>
 
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="ingredients/dashboard">
-                    <span class="bi bi-speedometer2"></span> Stat ingrédients
-                </NavLink>
-            </div>
-
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="ingredients">
-                    <span class="bi bi-list-nested-nav-menu"></span> Liste ingrédients
-                </NavLink>
-            </div>
-        </Authorized>
-    </AuthorizeView>
-
-    <AuthorizeView Roles="Admin">
-        <Authorized>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/chefs">
-                    <span class="bi bi-house-door-fill-nav-menu"></span> Liste des chefs
-                </NavLink>
-            </div>
-        </Authorized>
-    </AuthorizeView>
-
-</nav>
+@code {
+    private bool IsAuthPage()
+    {
+        var relativePath = NavManager.ToBaseRelativePath(NavManager.Uri).ToLower();
+        return relativePath.StartsWith("login") || relativePath.StartsWith("signup");
+    }
+}
